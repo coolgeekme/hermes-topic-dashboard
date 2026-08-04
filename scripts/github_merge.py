@@ -15,40 +15,51 @@ import hashlib
 from datetime import datetime, timezone
 from collections import defaultdict
 
-HERMES_FILE = os.path.expanduser("~/.hermes/topic_dashboard_data/topics.json")
-CLAUDE_VPS_FILE = os.path.expanduser("~/.hermes/claude_dashboard_data/claude_sessions.json")
-CLAUDE_LOCAL_FILE = os.path.expanduser("~/.hermes/claude_dashboard_data/claude_local_sessions.json")
-OUTPUT_DIR = os.path.expanduser("~/.hermes/unified_dashboard_data")
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, "unified_topics.json")
-
 # ── Secret Redaction ──────────────────────────────────────────────────
 
 _SECRET_PATTERNS = [
+    (re.compile(r'sk_liv\w*'), '[STRIPE_LIVE_KEY]'),
+    (re.compile(r'sk_live\w*'), '[STRIPE_LIVE_KEY]'),
+    (re.compile(r'sk_test\w*'), '[STRIPE_TEST_KEY]'),
+    (re.compile(r'rk_live\w*'), '[STRIPE_RESTRICTED_KEY]'),
+    (re.compile(r'sk-ant\S*'), '[ANTHROPIC_API_KEY]'),
     (re.compile(r'\d+-[a-zA-Z0-9_]+\.apps\.googleusercontent\.com'), '[GOOGLE_CLIENT_ID]'),
     (re.compile(r'GOCSPX-[a-zA-Z0-9_-]+'), '[GOOGLE_CLIENT_SECRET]'),
-    (re.compile(r'sk-[a-zA-Z0-9]{32,}'), '[OPENAI_API_KEY]'),
-    (re.compile(r'sk-ant-[a-zA-Z0-9_-]{32,}'), '[ANTHROPIC_API_KEY]'),
     (re.compile(r'ghp_[a-zA-Z0-9]{36}'), '[GITHUB_TOKEN]'),
     (re.compile(r'github_pat_[a-zA-Z0-9_]{36,}'), '[GITHUB_TOKEN]'),
-    (re.compile(r'gho_[a-zA-Z0-9]{36,}'), '[GITHUB_OAUTH_TOKEN]'),
     (re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'), '[EMAIL]'),
-    (re.compile(r'\+1?\d{10,}'), '[PHONE]'),
     (re.compile(r'AKIA[0-9A-Z]{16}'), '[AWS_ACCESS_KEY]'),
     (re.compile(r'Bearer\s+[a-zA-Z0-9._\-]{20,}'), 'Bearer [REDACTED]'),
     (re.compile(r'AIza[0-9A-Za-z\-_]{35}'), '[GOOGLE_API_KEY]'),
     (re.compile(r'ya29\.[0-9A-Za-z\-_]+'), '[GOOGLE_OAUTH_TOKEN]'),
 ]
 
-def redact(text: str) -> str:
-    """Decode base64 content from local exports, passthrough otherwise."""
+def redact_text(text: str) -> str:
     if not text:
         return text
+    for p, r in _SECRET_PATTERNS:
+        text = p.sub(r, text)
+    return text
+
+HERMES_FILE = os.path.expanduser("~/.hermes/topic_dashboard_data/topics.json")
+CLAUDE_VPS_FILE = os.path.expanduser("~/.hermes/claude_dashboard_data/claude_sessions.json")
+CLAUDE_LOCAL_FILE = os.path.expanduser("~/.hermes/claude_dashboard_data/claude_local_sessions.json")
+CLAUDE_LOCAL_TAR = os.path.expanduser("~/.hermes/claude_dashboard_data/claude_local_sessions.tar.gz")
+OUTPUT_DIR = os.path.expanduser("~/.hermes/unified_dashboard_data")
+OUTPUT_FILE = os.path.join(OUTPUT_DIR, "unified_topics.json")
+
+def redact(text: str) -> str:
+    """Decode base64 content from local exports, then redact secrets."""
+    if not text:
+        return text
+    # First decode base64 if present
     if text.startswith('[B64]'):
         try:
-            return base64.b64decode(text[5:]).decode('utf-8')
+            text = base64.b64decode(text[5:]).decode('utf-8')
         except:
-            return text
-    return text
+            pass
+    # Then redact secrets
+    return redact_text(text)
 
 # ── Loaders ───────────────────────────────────────────────────────────
 
@@ -225,11 +236,17 @@ def merge_all(hermes_topics: list[dict], vps_claude: list[dict], local_claude: l
         g['messages'].sort(key=lambda m: m.get('timestamp',''))
         msgs = g['messages'][-500:]
         
+        # Strip messages from embedded sessions to avoid leaking unredacted content
+        clean_sessions = []
+        for s in g['sessions']:
+            clean = {k: v for k, v in s.items() if k != 'messages'}
+            clean_sessions.append(clean)
+        
         topics.append({
             'id': hashlib.md5(g['name'].encode()).hexdigest()[:12],
             'name': g['name'][:80],
             'platforms': sorted(g['platforms']),
-            'sessions': g['sessions'],
+            'sessions': clean_sessions,
             'session_count': len(g['sessions']),
             'message_count': total_msgs,
             'message_count_exported': len(msgs),
@@ -259,7 +276,11 @@ def _merge_group_list(gs):
 def main():
     hermes = load_hermes_data()
     vps = load_sessions(CLAUDE_VPS_FILE, 'VPS')
-    local = load_sessions(CLAUDE_LOCAL_FILE, 'local')
+    # Try tar.gz first, then JSON
+    if os.path.exists(CLAUDE_LOCAL_TAR):
+        local = load_sessions(CLAUDE_LOCAL_TAR, 'local')
+    else:
+        local = load_sessions(CLAUDE_LOCAL_FILE, 'local')
     
     print(f"Hermes topics: {len(hermes)}")
     print(f"Claude VPS: {len(vps)} sessions")
