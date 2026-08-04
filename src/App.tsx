@@ -4,74 +4,53 @@ import { TopicList } from './components/TopicList'
 import { TopicView } from './components/TopicView'
 import type { Topic } from './types'
 
-const CATEGORY_RULES: { name: string; icon: string; pattern: RegExp }[] = [
-  { name: 'Social & Content', icon: '📱', pattern: /instagram|linkedin|social.media|content|post|facebook|tweet|thread/i },
-  { name: 'Development', icon: '💻', pattern: /github|repo|code|build|app\b|mobile|api|cli|server|deploy|website|calculator/i },
-  { name: 'AI & Models', icon: '🤖', pattern: /ollama|llm|model|ai\b|agent|hermes|claude|codex|gpt|openai|pricing/i },
-  { name: 'Communication', icon: '📧', pattern: /email|gmail|calendar|message|imessage|contact|connect/i },
-  { name: 'Personal', icon: '🏠', pattern: /room|clean|buy|purchase|weekend|soccer|enzo|prescott|best buy|laptop/i },
-  { name: 'System', icon: '⚙️', pattern: /cron|dashboard|export|test|console|deploy|service.worker|system.check/i },
+const CATEGORIES = [
+  { key: 'recent', label: 'Recent', icon: '🕐', test: (t: Topic) => (Date.now() / 1000 - t.last_active) < 7 * 86400 },
+  { key: 'social', label: 'Social', icon: '📱', test: (t: Topic) => /instagram|linkedin|social.media|content|post/i.test(t.name) },
+  { key: 'dev', label: 'Dev', icon: '💻', test: (t: Topic) => /github|repo|code|build|app\b|mobile|api|deploy|website/i.test(t.name) },
+  { key: 'ai', label: 'AI', icon: '🤖', test: (t: Topic) => /ollama|llm|model|ai\b|agent|hermes|claude|codex|pricing/i.test(t.name) },
+  { key: 'personal', label: 'Personal', icon: '🏠', test: (t: Topic) => /email|gmail|calendar|room|clean|buy|purchase|weekend|soccer|kevin|best buy/i.test(t.name) },
+  { key: 'all', label: 'All', icon: '', test: () => true },
 ]
 
-function categorize(topic: Topic): string {
-  for (const rule of CATEGORY_RULES) {
-    if (rule.pattern.test(topic.name)) return rule.name
-  }
-  return 'Other'
-}
-
 export default function App() {
-  const { data, loading, error, refreshing, lastRefresh, refresh } = useTopicsData()
+  const { data, loading, error, refreshing, refresh } = useTopicsData()
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null)
   const [search, setSearch] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [activeCategory, setActiveCategory] = useState('recent')
   const [platformFilter, setPlatformFilter] = useState<string>('all')
-  const [compact, setCompact] = useState(false)
 
   const filteredTopics = useMemo(() => {
     if (!data) return []
     let topics = data.topics
+
+    // Category filter
+    const cat = CATEGORIES.find(c => c.key === activeCategory)
+    if (cat && cat.key !== 'all') {
+      topics = topics.filter(cat.test)
+    }
+
+    // Platform filter
     if (platformFilter !== 'all') {
       topics = topics.filter((t) => t.platforms?.includes(platformFilter))
     }
+
+    // Search
     if (search.trim()) {
       const q = search.toLowerCase()
       topics = topics.filter(
-        (t) =>
-          t.name.toLowerCase().includes(q) ||
-          t.messages.some((m) => m.content?.toLowerCase().includes(q))
+        (t) => t.name.toLowerCase().includes(q) || t.messages.some((m) => m.content?.toLowerCase().includes(q))
       )
     }
-    return topics
-  }, [data, search, platformFilter])
 
-  // Group by category
-  const categorized = useMemo(() => {
-    const cats: { name: string; icon: string; topics: Topic[] }[] = []
-    const catMap = new Map<string, Topic[]>()
-    for (const t of filteredTopics) {
-      const cat = categorize(t)
-      if (!catMap.has(cat)) catMap.set(cat, [])
-      catMap.get(cat)!.push(t)
-    }
-    // Order: predefined categories first, then "Other"
-    const order = [...CATEGORY_RULES.map(r => r.name), 'Other']
-    for (const name of order) {
-      const topics = catMap.get(name)
-      if (topics && topics.length > 0) {
-        const icon = CATEGORY_RULES.find(r => r.name === name)?.icon || '📌'
-        cats.push({ name, icon, topics })
-      }
-    }
-    return cats
-  }, [filteredTopics])
+    return topics
+  }, [data, activeCategory, platformFilter, search])
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[var(--app-height)]">
-        <div className="flex flex-col items-center gap-4 animate-fade-in">
-          <div className="w-12 h-12 rounded-full border-2 border-accent-cyan border-t-transparent animate-spin" />
-          <p className="text-white/50 text-sm">Loading conversations...</p>
-        </div>
+        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
       </div>
     )
   }
@@ -79,11 +58,9 @@ export default function App() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[var(--app-height)] p-6">
-        <div className="glass rounded-2xl p-8 max-w-md text-center">
-          <div className="text-4xl mb-4">⚠️</div>
-          <h2 className="text-lg font-semibold mb-2">Failed to load</h2>
-          <p className="text-white/50 text-sm mb-4">{error}</p>
-          <button onClick={refresh} className="px-4 py-2 bg-accent-cyan/10 text-accent-cyan rounded-lg border border-accent-cyan/20 hover:bg-accent-cyan/20 transition-colors text-sm">Try Again</button>
+        <div className="text-center">
+          <p className="text-white/30 text-sm mb-3">Couldn't load conversations</p>
+          <button onClick={refresh} className="px-4 py-2 rounded-full bg-white/5 text-white/60 text-sm hover:bg-white/10 transition-colors">Try Again</button>
         </div>
       </div>
     )
@@ -95,21 +72,22 @@ export default function App() {
 
   return (
     <TopicList
-      categorized={categorized}
-      allTopics={filteredTopics}
+      topics={filteredTopics}
+      allTopics={data!.topics}
       search={search}
+      searchOpen={searchOpen}
       onSearchChange={setSearch}
+      onToggleSearch={() => { setSearchOpen(!searchOpen); setSearch('') }}
       onSelectTopic={setSelectedTopic}
       generatedAt={data?.generated_at}
       refreshing={refreshing}
-      lastRefresh={lastRefresh}
       onRefresh={refresh}
-      totalTopics={data?.topics.length}
       platforms={data?.platforms}
       platformFilter={platformFilter}
       onPlatformFilterChange={setPlatformFilter}
-      compact={compact}
-      onToggleCompact={() => setCompact(!compact)}
+      activeCategory={activeCategory}
+      onCategoryChange={setActiveCategory}
+      categories={CATEGORIES}
     />
   )
 }
