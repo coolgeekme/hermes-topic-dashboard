@@ -187,10 +187,10 @@ def main():
         'sessions': sessions,
     }
     
-    # Write JSON, then compress to tar.gz
+    # Write JSON, then compress — write to current dir, not repo dir
     json_str = json.dumps(output, ensure_ascii=False, indent=2)
     
-    # Create tar.gz in memory
+    # Create tar.gz in current directory
     tar_buffer = io.BytesIO()
     with tarfile.open(fileobj=tar_buffer, mode='w:gz') as tar:
         info = tarfile.TarInfo(name='claude_local_sessions.json')
@@ -198,17 +198,18 @@ def main():
         tar.addfile(info, io.BytesIO(json_str.encode('utf-8')))
     
     compressed = tar_buffer.getvalue()
+    export_file = 'claude_local_sessions.tar.gz'
     
-    with open(OUTPUT_FILE, 'wb') as f:
+    with open(export_file, 'wb') as f:
         f.write(compressed)
     
     print(f"\nExported {len(sessions)} sessions ({output['total_messages']} messages)")
-    print(f"Compressed: {OUTPUT_FILE} ({len(compressed)/1024:.0f} KB)")
+    print(f"Compressed: {export_file} ({len(compressed)/1024:.0f} KB)")
     
     if args.push:
-        push_to_github()
+        push_to_github(export_file)
 
-def push_to_github():
+def push_to_github(export_file: str):
     repo_dir = None
     for search in [
         os.path.expanduser("~/hermes-topic-dashboard"),
@@ -223,8 +224,8 @@ def push_to_github():
         return
     
     import shutil
-    dest = os.path.join(repo_dir, OUTPUT_FILE)
-    shutil.copy(OUTPUT_FILE, dest)
+    dest = os.path.join(repo_dir, "public", "claude_local_sessions.tar.gz")
+    shutil.copy(export_file, dest)
     
     os.chdir(repo_dir)
     # Remove old JSON file if it exists
@@ -233,7 +234,7 @@ def push_to_github():
         os.remove(old_json)
         subprocess.run(['git', 'rm', 'public/claude_local_sessions.json'], check=False)
     
-    subprocess.run(['git', 'add', OUTPUT_FILE], check=True)
+    subprocess.run(['git', 'add', 'public/claude_local_sessions.tar.gz'], check=True)
     ts = datetime.now().strftime('%Y-%m-%d %H:%M')
     subprocess.run(['git', 'commit', '-m', f'data: Claude Code sessions (compressed) [{ts}]'], check=True)
     subprocess.run(['git', 'pull', '--rebase'], check=False)
