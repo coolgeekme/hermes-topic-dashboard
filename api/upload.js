@@ -1,5 +1,7 @@
-import { put, list, del } from '@vercel/blob'
 import { json } from '@vercel/node'
+
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN
+const REPO = 'coolgeekme/hermes-topic-dashboard'
 
 export default async function handler(req) {
   const headers = { 'Access-Control-Allow-Origin': '*' }
@@ -8,63 +10,57 @@ export default async function handler(req) {
     return new Response(null, { status: 204, headers })
   }
 
-  // GET: serve unified topics
-  if (req.method === 'GET') {
-    try {
-      const url = new URL(req.url)
-      const userId = url.searchParams.get('user') || 'default'
-      const prefix = `${userId}/unified_topics`
-      
-      const { blobs } = await list({ prefix, limit: 1 })
-      
-      if (blobs.length === 0) {
-        return json({ topics: [], platforms: [], generated_at: new Date().toISOString() }, { headers })
-      }
-
-      const blob = blobs[0]
-      const res = await fetch(blob.url)
-      const data = await res.json()
-      
-      return json(data, { headers: { ...headers, 'Cache-Control': 'public, max-age=60' } })
-    } catch (e) {
-      return json({ topics: [], platforms: [], error: e.message }, { headers })
-    }
+  if (req.method !== 'POST') {
+    return json({ error: 'POST only' }, { status: 405, headers })
   }
 
-  // POST: upload platform sessions
-  if (req.method === 'POST') {
+  if (!GITHUB_TOKEN) {
+    return json({ error: 'Server not configured' }, { status: 500, headers })
+  }
+
+  try {
+    const { platform, sessions } = req.body
+    if (!sessions || !Array.isArray(sessions)) {
+      return json({ error: 'Missing sessions array' }, { status: 400, headers })
+    }
+
+    const filePath = `public/${platform}_sessions.json`
+    const content = JSON.stringify({ platform, sessions, exported_at: new Date().toISOString() })
+    const base64 = Buffer.from(content).toString('base64')
+
+    // Get existing file SHA if it exists
+    let sha = null
     try {
-      const { userId, platform, sessions } = req.body
-      if (!userId || !sessions) {
-        return json({ error: 'Missing userId or sessions' }, { status: 400, headers })
-      }
-
-      // Delete old file if exists, then upload new
-      const key = `${userId}/${platform}_sessions.json`
-      
-      try {
-        const { blobs } = await list({ prefix: key, limit: 1 })
-        for (const b of blobs) {
-          await del(b.url)
-        }
-      } catch {}
-
-      await put(key, JSON.stringify(sessions), {
-        access: 'public',
-        contentType: 'application/json',
+      const getRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${filePath}`, {
+        headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
       })
+      if (getRes.ok) {
+        const info = await getRes.json()
+        sha = info.sha
+      }
+    } catch {}
 
-      // Trigger rebuild asynchronously
-      const rebuildUrl = new URL(req.url)
-      rebuildUrl.pathname = '/api/rebuild'
-      rebuildUrl.searchParams.set('userId', userId)
-      fetch(rebuildUrl.toString(), { method: 'POST' }).catch(() => {})
+    // Push to GitHub
+    const putRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${filePath}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: `data: ${platform} web sessions`,
+        content: base64,
+        ...(sha ? { sha } : {})
+      })
+    })
 
-      return json({ ok: true, sessions: sessions.length }, { headers })
-    } catch (e) {
-      return json({ error: e.message }, { status: 500, headers })
+    if (!putRes.ok) {
+      const err = await putRes.json()
+      return json({ error: err.message }, { status: 500, headers })
     }
-  }
 
-  return json({ error: 'Method not allowed' }, { status: 405, headers })
+    return json({ ok: true, sessions: sessions.length }, { headers })
+  } catch (e) {
+    return json({ error: e.message }, { status: 500, headers })
+  }
 }
