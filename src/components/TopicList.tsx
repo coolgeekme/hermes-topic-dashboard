@@ -15,6 +15,7 @@ interface Props {
   onSelectTopic: (t: Topic) => void
   generatedAt?: string
   refreshing: boolean
+  lastRefresh?: string | null
   onRefresh: () => void
   totalTopics?: number
   platforms?: string[]
@@ -36,7 +37,7 @@ function timeAgo(ts: number): string {
   return new Date(ts * 1000).toLocaleDateString()
 }
 
-export function TopicList({ categorized, allTopics, search, onSearchChange, onSelectTopic, generatedAt, refreshing, onRefresh, totalTopics, platforms, platformFilter, onPlatformFilterChange, compact, onToggleCompact }: Props) {
+export function TopicList({ categorized, allTopics, search, onSearchChange, onSelectTopic, generatedAt, refreshing, lastRefresh, onRefresh, totalTopics, platforms, platformFilter, onPlatformFilterChange, compact, onToggleCompact }: Props) {
   const showCategories = !search.trim() && platformFilter === 'all'
 
   return (
@@ -74,7 +75,7 @@ export function TopicList({ categorized, allTopics, search, onSearchChange, onSe
           </div>
         </div>
         <p className="text-white/20 text-[11px]">
-          {totalTopics ?? allTopics.length} topics{generatedAt ? ` · updated ${timeAgo(new Date(generatedAt).getTime() / 1000)}` : ''}
+          {totalTopics ?? allTopics.length} topics{generatedAt ? ` · updated ${timeAgo(new Date(generatedAt).getTime() / 1000)}` : ''}{lastRefresh ? ` · refreshed ${lastRefresh}` : ''}
         </p>
       </header>
 

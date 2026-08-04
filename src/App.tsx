@@ -21,7 +21,7 @@ function categorize(topic: Topic): string {
 }
 
 export default function App() {
-  const { data, loading, error, refreshing, refresh } = useTopicsData()
+  const { data, loading, error, refreshing, lastRefresh, refresh } = useTopicsData()
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null)
   const [search, setSearch] = useState('')
   const [platformFilter, setPlatformFilter] = useState<string>('all')
@@ -102,6 +102,7 @@ export default function App() {
       onSelectTopic={setSelectedTopic}
       generatedAt={data?.generated_at}
       refreshing={refreshing}
+      lastRefresh={lastRefresh}
       onRefresh={refresh}
       totalTopics={data?.topics.length}
       platforms={data?.platforms}

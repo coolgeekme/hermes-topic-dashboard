@@ -8,6 +8,7 @@ export function useTopicsData() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [lastRefresh, setLastRefresh] = useState<string | null>(null)
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -20,6 +21,7 @@ export function useTopicsData() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json: TopicsData = await res.json()
       setData(json)
+      if (isRefresh) setLastRefresh(new Date().toLocaleTimeString())
     } catch (e: any) {
       setError(e.message || 'Failed to load data')
     } finally {
@@ -32,7 +34,7 @@ export function useTopicsData() {
     fetchData()
   }, [fetchData])
 
-  return { data, loading, error, refreshing, refresh: () => fetchData(true) }
+  return { data, loading, error, refreshing, lastRefresh, refresh: () => fetchData(true) }
 }
 
 export const PLATFORM_COLORS: Record<string, { dot: string; bg: string; label: string }> = {
