@@ -16,9 +16,7 @@ export default function App() {
     return data.topics.filter(
       (t) =>
         t.name.toLowerCase().includes(q) ||
-        t.messages.some(
-          (m) => m.content?.toLowerCase().includes(q)
-        )
+        t.messages.some((m) => m.content?.toLowerCase().includes(q))
     )
   }, [data, search])
 
@@ -70,6 +68,7 @@ export default function App() {
       refreshing={refreshing}
       onRefresh={refresh}
       totalTopics={data?.topics.length}
+      platforms={data?.platforms}
     />
   )
 }

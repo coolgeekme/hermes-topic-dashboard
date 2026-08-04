@@ -1,24 +1,22 @@
-import type { Message } from '../types'
+import { PLATFORM_COLORS } from '../hooks'
+import type { UnifiedMessage } from '../types'
 
 interface Props {
-  message: Message
-  isLast: boolean
+  message: UnifiedMessage
 }
 
-export function MessageBubble({ message, isLast }: Props) {
+export function MessageBubble({ message }: Props) {
   const isUser = message.role === 'user'
   const isTool = message.role === 'tool'
   
-  if (isTool) return null // Skip tool messages in the view
+  if (isTool) return null
+  if (!isUser && !(message.content || '').trim()) return null
 
   const content = message.content || ''
-  
-  // Skip empty assistant messages (tool call placeholders)
-  if (!isUser && !content.trim()) return null
+  const platformColor = message.platform ? PLATFORM_COLORS[message.platform] : null
 
   return (
-    <div className={`msg-enter flex ${isUser ? 'justify-end' : 'justify-start'} mb-2`}
-         style={{ animationDelay: '0ms' }}>
+    <div className={`msg-enter flex ${isUser ? 'justify-end' : 'justify-start'} mb-2`}>
       <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
         isUser
           ? 'bg-accent-cyan/10 border border-accent-cyan/15 text-white/85'
@@ -27,20 +25,29 @@ export function MessageBubble({ message, isLast }: Props) {
         <div className="whitespace-pre-wrap break-words leading-relaxed">
           {formatContent(content)}
         </div>
-        {message.timestamp_iso && (
-          <div className={`text-[10px] mt-1 ${isUser ? 'text-accent-cyan/30' : 'text-white/20'}`}>
-            {formatTime(message.timestamp_iso)}
-          </div>
-        )}
+        <div className="flex items-center justify-between mt-1">
+          {message.timestamp && (
+            <div className={`text-[10px] ${isUser ? 'text-accent-cyan/30' : 'text-white/20'}`}>
+              {formatTime(message.timestamp)}
+            </div>
+          )}
+          {platformColor && (
+            <span
+              className="text-[8px] px-1 rounded font-medium ml-auto"
+              style={{ color: platformColor.dot, opacity: 0.5 }}
+            >
+              {platformColor.label}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
 function formatContent(text: string): string {
-  // Truncate very long messages
   if (text.length > 1500) {
-    return text.slice(0, 1500) + '\n\n... [message truncated for dashboard view]'
+    return text.slice(0, 1500) + '\n\n... [truncated]'
   }
   return text
 }
@@ -49,12 +56,7 @@ function formatTime(iso: string): string {
   try {
     const d = new Date(iso)
     return d.toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
+      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
     })
-  } catch {
-    return ''
-  }
+  } catch { return '' }
 }

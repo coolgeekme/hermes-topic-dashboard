@@ -34,3 +34,18 @@ export function useTopicsData() {
 
   return { data, loading, error, refreshing, refresh: () => fetchData(true) }
 }
+
+export const PLATFORM_COLORS: Record<string, { dot: string; bg: string; label: string }> = {
+  'hermes': { dot: '#22d3ee', bg: 'rgba(34,211,238,0.1)', label: 'Hermes' },
+  'claude-code': { dot: '#a855f7', bg: 'rgba(168,85,247,0.1)', label: 'Claude' },
+  'codex': { dot: '#34d399', bg: 'rgba(52,211,153,0.1)', label: 'Codex' },
+}
+
+export const ACCENT_COLORS = [
+  { dot: '#22d3ee', bg: 'rgba(34,211,238,0.08)' },
+  { dot: '#a855f7', bg: 'rgba(168,85,247,0.08)' },
+  { dot: '#34d399', bg: 'rgba(52,211,153,0.08)' },
+  { dot: '#38bdf8', bg: 'rgba(56,189,248,0.08)' },
+  { dot: '#f472b6', bg: 'rgba(244,114,182,0.08)' },
+  { dot: '#fbbf24', bg: 'rgba(251,191,36,0.08)' },
+]

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PLATFORM_COLORS } from '../hooks'
 import type { Topic } from '../types'
 
 interface Props {
@@ -8,20 +9,28 @@ interface Props {
 
 export function ContinueModal({ topic, onClose }: Props) {
   const [copied, setCopied] = useState(false)
+  const isMultiPlatform = topic.platforms && topic.platforms.length > 1
+  const isMultiSession = topic.session_count > 1
 
-  // Get latest session ID (the one you'd resume)
-  const sortedSessions = [...topic.sessions].sort()
-  const latestSession = sortedSessions[sortedSessions.length - 1] || ''
-  
-  // Build context summary from the LAST 8 messages across ALL sessions
+  // Build context from last messages
   const recentMessages = topic.messages.slice(-8)
   const contextSummary = recentMessages
     .filter((m) => m.content)
-    .map((m) => `${m.role === 'user' ? 'You' : 'Hermes'}: ${m.content?.slice(0, 250)}${(m.content?.length ?? 0) > 250 ? '...' : ''}`)
+    .map((m) => {
+      const platform = m.platform ? `[${m.platform}] ` : ''
+      return `${platform}${m.role === 'user' ? 'You' : 'Assistant'}: ${m.content?.slice(0, 250)}${(m.content?.length ?? 0) > 250 ? '...' : ''}`
+    })
     .join('\n\n')
 
+  // Get latest sessions per platform for resume
+  const sessionsByPlatform: Record<string, typeof topic.sessions> = {}
+  for (const s of topic.sessions) {
+    if (!sessionsByPlatform[s.platform]) sessionsByPlatform[s.platform] = []
+    sessionsByPlatform[s.platform].push(s)
+  }
+
   async function handleCopy() {
-    const text = `[Continuing topic: "${topic.name}" — context from ${topic.messages.length} messages across ${topic.session_count} sessions]\n\n${contextSummary}`
+    const text = `[Continuing topic: "${topic.name}" — ${topic.message_count_exported} messages across ${topic.session_count} sessions on ${(topic.platforms || []).join(', ')}]\n\n${contextSummary}`
     try {
       await navigator.clipboard.writeText(text)
     } catch {
@@ -36,8 +45,6 @@ export function ContinueModal({ topic, onClose }: Props) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const isMultiSession = topic.session_count > 1
-
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -46,32 +53,26 @@ export function ContinueModal({ topic, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-base font-semibold mb-0.5">Continue "{topic.name}"</h3>
-        
-        {/* Multi-session explanation */}
-        {isMultiSession ? (
+
+        {/* Multi-platform / multi-session explanation */}
+        {(isMultiPlatform || isMultiSession) && (
           <div className="mb-4 p-3 rounded-xl bg-accent-cyan/5 border border-accent-cyan/10 text-xs text-white/50 leading-relaxed">
-            <p className="mb-2">
-              This topic spans <strong className="text-white/70">{topic.session_count} sessions</strong> with{' '}
-              <strong className="text-white/70">{topic.messages.length} messages</strong> merged chronologically.
-            </p>
+            {isMultiPlatform && (
+              <p className="mb-2">
+                This topic spans <strong className="text-white/70">{topic.platforms?.length} platforms</strong> —{' '}
+                {(topic.platforms || []).map((p) => PLATFORM_COLORS[p]?.label || p).join(', ')}.
+                Each platform's sessions are listed below with their own resume commands.
+              </p>
+            )}
             <p>
-              When you <strong className="text-white/70">resume</strong>, Hermes re-opens the <em>latest</em> session 
-              — it already has full context from that session. Earlier sessions provide background 
-              but aren't loaded into the model by default.
-            </p>
-            <p className="mt-2">
-              For the richest context, <strong className="text-white/70">copy the summary</strong> and paste it 
-              at the start of a fresh session. That way Hermes sees everything at once.
+              <strong className="text-white/70">Copy context</strong> to bring everything into a fresh session on any platform.
+              Or <strong className="text-white/70">resume</strong> a specific session to pick up exactly where you left off.
             </p>
           </div>
-        ) : (
-          <p className="text-white/35 text-xs mb-4">
-            Single session · {topic.messages.length} messages
-          </p>
         )}
 
         <div className="space-y-2.5">
-          {/* Option 1: Copy context */}
+          {/* Copy context */}
           <button
             onClick={handleCopy}
             className="w-full flex items-center gap-3 p-3 rounded-xl bg-surface-card/60 border border-surface-border hover:border-accent-cyan/20 transition-colors text-left"
@@ -86,54 +87,49 @@ export function ContinueModal({ topic, onClose }: Props) {
                 {copied ? '✓ Copied!' : 'Copy context to clipboard'}
               </div>
               <div className="text-[11px] text-white/30 truncate">
-                {isMultiSession 
-                  ? `Last 8 messages from all ${topic.session_count} sessions`
-                  : 'Paste into a new Hermes session'}
+                Paste into any agent to continue
               </div>
             </div>
           </button>
 
-          {/* Option 2: Resume latest session */}
-          {latestSession && (
-            <div className="p-3 rounded-xl bg-surface-card/60 border border-surface-border">
-              <div className="flex items-center gap-3 mb-2.5">
-                <div className="w-9 h-9 rounded-lg bg-accent-purple/10 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+          {/* Resume per platform */}
+          {Object.entries(sessionsByPlatform).map(([platform, sessions]) => {
+            const pc = PLATFORM_COLORS[platform]
+            const latest = sessions[sessions.length - 1]
+            if (!latest?.resume_command) return null
+            
+            return (
+              <div key={platform} className="p-3 rounded-xl bg-surface-card/60 border border-surface-border">
+                <div className="flex items-center gap-2 mb-2">
+                  {pc && (
+                    <span
+                      className="text-[9px] px-1.5 py-0.5 rounded-full font-medium"
+                      style={{ backgroundColor: pc.bg, color: pc.dot }}
+                    >
+                      {pc.label}
+                    </span>
+                  )}
+                  <span className="text-xs text-white/25">
+                    {sessions.length} session{sessions.length > 1 ? 's' : ''}
+                  </span>
                 </div>
-                <div>
-                  <div className="text-sm font-medium text-white/80">Resume latest session</div>
-                  <div className="text-[11px] text-white/25">
-                    {isMultiSession 
-                      ? `Session ${topic.session_count} of ${topic.session_count} — ${sortedSessions.length} total in topic`
-                      : 'Open directly in Hermes Desktop'}
+                <code className="block w-full p-2 bg-surface/80 rounded-lg text-[11px] text-white/35 font-mono select-all break-all">
+                  {latest.resume_command}
+                </code>
+                {sessions.length > 1 && (
+                  <div className="mt-2 space-y-0.5">
+                    {sessions.slice(-3).map((s) => (
+                      <div key={s.id} className="text-[9px] text-white/15 font-mono truncate">
+                        {s.id === latest.id ? '→ ' : '  '}{s.id.slice(0, 20)}...
+                        {s.title && ` — ${s.title.slice(0, 30)}`}
+                        {s.id === latest.id && ' (latest)'}
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
-              <code className="block w-full p-2 bg-surface/80 rounded-lg text-[11px] text-white/35 font-mono select-all break-all">
-                hermes --resume {latestSession}
-              </code>
-            </div>
-          )}
-
-          {/* All sessions list (for multi-session topics) */}
-          {isMultiSession && sortedSessions.length <= 8 && (
-            <div className="p-3 rounded-xl bg-surface-card/40 border border-surface-border/50">
-              <div className="text-[10px] text-white/20 uppercase tracking-wider mb-2">All sessions in this topic</div>
-              <div className="space-y-1">
-                {sortedSessions.map((sid, idx) => (
-                  <div key={sid} className="flex items-center gap-2">
-                    <span className="text-[10px] text-white/15 w-4">{idx + 1}.</span>
-                    <code className={`text-[10px] font-mono select-all ${sid === latestSession ? 'text-accent-cyan/50' : 'text-white/20'}`}>
-                      {sid}
-                      {sid === latestSession ? ' ← latest' : ''}
-                    </code>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+            )
+          })}
         </div>
 
         <button
