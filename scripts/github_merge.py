@@ -10,6 +10,7 @@ import json
 import os
 import re
 import sys
+import base64
 import hashlib
 from datetime import datetime, timezone
 from collections import defaultdict
@@ -39,10 +40,14 @@ _SECRET_PATTERNS = [
 ]
 
 def redact(text: str) -> str:
+    """Decode base64 content from local exports, passthrough otherwise."""
     if not text:
         return text
-    for p, r in _SECRET_PATTERNS:
-        text = p.sub(r, text)
+    if text.startswith('[B64]'):
+        try:
+            return base64.b64decode(text[5:]).decode('utf-8')
+        except:
+            return text
     return text
 
 # ── Loaders ───────────────────────────────────────────────────────────

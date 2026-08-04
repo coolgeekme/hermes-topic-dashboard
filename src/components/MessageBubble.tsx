@@ -46,6 +46,12 @@ export function MessageBubble({ message }: Props) {
 }
 
 function formatContent(text: string): string {
+  // Decode base64-encoded content from local exports
+  if (text.startsWith('[B64]')) {
+    try {
+      text = atob(text.slice(5))
+    } catch { /* leave as-is if decode fails */ }
+  }
   if (text.length > 1500) {
     return text.slice(0, 1500) + '\n\n... [truncated]'
   }
