@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useTopicsData } from './hooks'
+import { useTopicsData, PLATFORM_COLORS } from './hooks'
 import { TopicList } from './components/TopicList'
 import { TopicView } from './components/TopicView'
 import type { Topic } from './types'
@@ -8,17 +8,29 @@ export default function App() {
   const { data, loading, error, refreshing, refresh } = useTopicsData()
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null)
   const [search, setSearch] = useState('')
+  const [platformFilter, setPlatformFilter] = useState<string>('all')
 
   const filteredTopics = useMemo(() => {
     if (!data) return []
-    if (!search.trim()) return data.topics
-    const q = search.toLowerCase()
-    return data.topics.filter(
-      (t) =>
-        t.name.toLowerCase().includes(q) ||
-        t.messages.some((m) => m.content?.toLowerCase().includes(q))
-    )
-  }, [data, search])
+    let topics = data.topics
+
+    // Platform filter
+    if (platformFilter !== 'all') {
+      topics = topics.filter((t) => t.platforms?.includes(platformFilter))
+    }
+
+    // Search filter
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      topics = topics.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.messages.some((m) => m.content?.toLowerCase().includes(q))
+      )
+    }
+
+    return topics
+  }, [data, search, platformFilter])
 
   if (loading) {
     return (
@@ -69,6 +81,8 @@ export default function App() {
       onRefresh={refresh}
       totalTopics={data?.topics.length}
       platforms={data?.platforms}
+      platformFilter={platformFilter}
+      onPlatformFilterChange={setPlatformFilter}
     />
   )
 }

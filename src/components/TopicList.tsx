@@ -11,6 +11,8 @@ interface Props {
   onRefresh: () => void
   totalTopics?: number
   platforms?: string[]
+  platformFilter?: string
+  onPlatformFilterChange?: (p: string) => void
 }
 
 function timeAgo(ts: number): string {
@@ -25,7 +27,7 @@ function timeAgo(ts: number): string {
   return new Date(ts * 1000).toLocaleDateString()
 }
 
-export function TopicList({ topics, search, onSearchChange, onSelectTopic, generatedAt, refreshing, onRefresh, totalTopics, platforms }: Props) {
+export function TopicList({ topics, search, onSearchChange, onSelectTopic, generatedAt, refreshing, onRefresh, totalTopics, platforms, platformFilter, onPlatformFilterChange }: Props) {
   return (
     <div className="flex flex-col min-h-[var(--app-height)]">
       {/* Header */}
@@ -57,8 +59,8 @@ export function TopicList({ topics, search, onSearchChange, onSelectTopic, gener
         </p>
       </header>
 
-      {/* Search */}
-      <div className="flex-shrink-0 px-4 pb-3">
+      {/* Search + Filters */}
+      <div className="flex-shrink-0 px-4 pb-3 space-y-2">
         <div className="relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -71,6 +73,40 @@ export function TopicList({ topics, search, onSearchChange, onSelectTopic, gener
             className="w-full pl-9 pr-4 py-2 bg-surface-card border border-surface-border rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:border-accent-cyan/30 transition-colors"
           />
         </div>
+        {/* Platform filter chips */}
+        {platforms && platforms.length > 1 && (
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => onPlatformFilterChange?.('all')}
+              className={`text-[10px] px-2.5 py-1 rounded-full transition-colors ${
+                platformFilter === 'all' || !platformFilter
+                  ? 'bg-white/10 text-white/80'
+                  : 'bg-surface-card text-white/30 hover:text-white/50'
+              }`}
+            >
+              All
+            </button>
+            {platforms.map((p) => {
+              const pc = PLATFORM_COLORS[p]
+              if (!pc) return null
+              const active = platformFilter === p
+              return (
+                <button
+                  key={p}
+                  onClick={() => onPlatformFilterChange?.(p)}
+                  className="text-[10px] px-2.5 py-1 rounded-full transition-colors font-medium"
+                  style={{
+                    backgroundColor: active ? pc.bg : 'transparent',
+                    color: active ? pc.dot : `${pc.dot}80`,
+                    border: `1px solid ${active ? pc.dot : `${pc.dot}30`}`,
+                  }}
+                >
+                  {pc.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Topic Grid */}
