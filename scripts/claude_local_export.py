@@ -19,6 +19,29 @@ import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 
+# ── Secret Redaction ──────────────────────────────────────────────────
+
+_SECRET_PATTERNS = [
+    (re.compile(r'\d+-[a-zA-Z0-9_]+\.apps\.googleusercontent\.com'), '[GOOGLE_CLIENT_ID]'),
+    (re.compile(r'GOCSPX-[a-zA-Z0-9_-]+'), '[GOOGLE_CLIENT_SECRET]'),
+    (re.compile(r'sk-[a-zA-Z0-9]{32,}'), '[OPENAI_API_KEY]'),
+    (re.compile(r'sk-ant-[a-zA-Z0-9_-]{32,}'), '[ANTHROPIC_API_KEY]'),
+    (re.compile(r'ghp_[a-zA-Z0-9]{36}'), '[GITHUB_TOKEN]'),
+    (re.compile(r'github_pat_[a-zA-Z0-9_]{36,}'), '[GITHUB_TOKEN]'),
+    (re.compile(r'gho_[a-zA-Z0-9]{36,}'), '[GITHUB_OAUTH_TOKEN]'),
+    (re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'), '[EMAIL]'),
+    (re.compile(r'\+1?\d{10,}'), '[PHONE]'),
+    (re.compile(r'AKIA[0-9A-Z]{16}'), '[AWS_ACCESS_KEY]'),
+    (re.compile(r'Bearer\s+[a-zA-Z0-9._\-]{20,}'), 'Bearer [REDACTED]'),
+]
+
+def redact(text: str) -> str:
+    if not text:
+        return text
+    for pattern, replacement in _SECRET_PATTERNS:
+        text = pattern.sub(replacement, text)
+    return text
+
 CLAUDE_DIR = os.path.expanduser("~/.claude")
 PROJECTS_DIR = os.path.join(CLAUDE_DIR, "projects")
 OUTPUT_FILE = "claude_local_sessions.json"
@@ -106,7 +129,7 @@ def parse_session(filepath: str) -> dict | None:
         if not branch and entry.get('gitBranch'):
             branch = entry.get('gitBranch', '')
         if t == 'ai-title':
-            title = entry.get('aiTitle') or title
+            title = redact(entry.get('aiTitle') or title)
         
         # User messages
         if t == 'user':
@@ -114,6 +137,7 @@ def parse_session(filepath: str) -> dict | None:
             text = extract_text_content(content)
             ts = entry.get('timestamp', '')
             if text.strip():
+                text = redact(text)
                 # Deduplicate (queue-operation may duplicate the first prompt)
                 dedup_key = text.strip()[:80]
                 if dedup_key not in user_messages_seen:
@@ -129,6 +153,7 @@ def parse_session(filepath: str) -> dict | None:
             text = extract_text_content(content)
             ts = entry.get('timestamp', '')
             if text.strip():
+                text = redact(text)
                 messages.append({'role': 'assistant', 'content': text, 'timestamp': ts})
                 if not first_ts:
                     first_ts = ts
@@ -142,7 +167,7 @@ def parse_session(filepath: str) -> dict | None:
                 dedup_key = text.strip()[:80]
                 if dedup_key not in user_messages_seen:
                     user_messages_seen.add(dedup_key)
-                    messages.insert(0, {'role': 'user', 'content': text, 'timestamp': ts})
+                    messages.insert(0, {'role': 'user', 'content': redact(text), 'timestamp': ts})
                     if not first_ts:
                         first_ts = ts
     
