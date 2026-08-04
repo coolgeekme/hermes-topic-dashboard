@@ -1,7 +1,7 @@
 import { PLATFORM_COLORS } from '../hooks'
 import type { Topic } from '../types'
 
-interface CategoryDef { key: string; label: string; icon: string; test: (t: Topic) => boolean }
+interface NavItem { key: string; label: string; icon: string; test: (t: Topic) => boolean }
 
 interface Props {
   topics: Topic[]
@@ -14,9 +14,9 @@ interface Props {
   platforms?: string[]
   platformFilter?: string
   onPlatformFilterChange?: (p: string) => void
-  activeCategory: string
-  onCategoryChange: (k: string) => void
-  categories: CategoryDef[]
+  activeNav: string
+  onNavChange: (k: string) => void
+  navItems: NavItem[]
 }
 
 function timeAgo(ts: number): string {
@@ -31,62 +31,78 @@ function timeAgo(ts: number): string {
   return new Date(ts * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function platformLabel(topic: Topic): { dot: string; label: string } {
-  if (topic.platforms?.includes('claude-code')) return { dot: '#D4A373', label: 'CLAUDE' }
-  if (topic.is_cron) return { dot: '#8e9192', label: 'SYSTEM' }
-  return { dot: '#3e90ff', label: 'HERMES' }
+const materialIcon = (name: string) => {
+  const icons: Record<string, string> = {
+    select_all: '☰', history: '◷', group: '👥', code: '</>', smart_toy: '◆', person: '●',
+    search: '⌕', refresh: '↻', settings: '⚙',
+  }
+  return icons[name] || '○'
 }
 
-export function TopicList({ topics, allTopics, search, onSearchChange, onSelectTopic, refreshing, onRefresh, platforms, platformFilter, onPlatformFilterChange, activeCategory, onCategoryChange, categories }: Props) {
+export function TopicList({ topics, allTopics, search, onSearchChange, onSelectTopic, refreshing, onRefresh, platforms, platformFilter, onPlatformFilterChange, activeNav, onNavChange, navItems }: Props) {
   return (
-    <div className="flex flex-col min-h-[var(--app-height)] bg-[#131315]">
-      {/* Header */}
-      <header className="flex-shrink-0 sticky top-0 bg-[#131315]/95 backdrop-blur-sm z-40 px-5 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-4">
+    <div className="flex h-screen bg-[#131315] overflow-hidden">
+      {/* Sidebar */}
+      <nav className="w-64 flex-shrink-0 flex flex-col border-r border-[#444748] bg-[#131315] px-10 py-8">
+        <div className="mb-12">
           <h1 className="text-[20px] font-medium text-[#e4e2e4] tracking-tight" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Conversations</h1>
-          <button onClick={onRefresh} disabled={refreshing} className="p-2 rounded-full hover:bg-[#2a2a2c] transition-colors">
-            <svg className={`w-5 h-5 text-[#8e9192] ${refreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-          </button>
+          <p className="text-[11px] text-[#8e9192] mt-1" style={{ fontFamily: "'JetBrains Mono', monospace" }}>AI Workspace</p>
         </div>
-        {/* Search */}
-        <div className="relative">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8e9192]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          <input
-            type="text" value={search} onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search conversations..."
-            className="w-full bg-[#1f1f21] border border-[#444748]/50 rounded-full py-2.5 pl-12 pr-4 text-[15px] text-[#e4e2e4] placeholder-[#8e9192]/70 outline-none focus:border-[#8e9192] transition-colors"
-            style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}
-          />
-        </div>
-      </header>
 
-      {/* Category sidebar + platform filters */}
-      <div className="flex-shrink-0 px-5 pb-4 flex items-center gap-2 overflow-x-auto no-scrollbar">
-        {categories.map((cat) => {
-          const active = activeCategory === cat.key
-          const count = cat.key === 'all' ? allTopics.length : allTopics.filter(cat.test).length
-          return (
-            <button key={cat.key} onClick={() => onCategoryChange(cat.key)}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors whitespace-nowrap flex-shrink-0`}
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                backgroundColor: active ? '#1f1f21' : 'transparent',
-                color: active ? '#e4e2e4' : '#8e9192',
-                border: active ? '1px solid #444748' : '1px solid transparent',
-              }}
-            >
-              {cat.icon && <span className="text-sm">{cat.icon}</span>}
-              {cat.label}
-              {count > 0 && <span style={{ color: active ? '#8e9192' : '#444748' }} className="text-[11px]">{count}</span>}
+        <div className="flex-1 overflow-y-auto space-y-1">
+          {navItems.map((item) => {
+            const active = activeNav === item.key
+            const count = item.key === 'all' ? allTopics.length : allTopics.filter(item.test).length
+            return (
+              <button
+                key={item.key}
+                onClick={() => onNavChange(item.key)}
+                className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[13px] transition-colors text-left`}
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  color: active ? '#ffffff' : '#c4c7c8',
+                  backgroundColor: active ? '#1b1b1d' : 'transparent',
+                  fontWeight: active ? 700 : 400,
+                }}
+              >
+                <span className="text-[16px] w-5 text-center opacity-60">{materialIcon(item.icon)}</span>
+                <span className="flex-1">{item.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col min-w-0">
+        {/* Top Bar */}
+        <header className="flex-shrink-0 sticky top-0 bg-[#131315]/95 backdrop-blur-sm z-40 flex items-center justify-between px-10 py-6">
+          <div className="flex-1 max-w-2xl">
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8e9192] text-[16px]">{materialIcon('search')}</span>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Search conversations..."
+                className="w-full bg-[#1f1f21] border border-[#444748]/50 rounded-full py-2.5 pl-12 pr-4 text-[15px] text-[#e4e2e4] placeholder-[#8e9192]/70 outline-none focus:border-[#8e9192] transition-colors"
+                style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 ml-8">
+            <button onClick={onRefresh} disabled={refreshing} className="p-2 rounded-full hover:bg-[#2a2a2c] transition-colors text-[#c4c7c8]">
+              <span className={`text-[20px] ${refreshing ? 'animate-spin inline-block' : ''}`}>{materialIcon('refresh')}</span>
             </button>
-          )
-        })}
-        {/* Platform filter */}
+          </div>
+        </header>
+
+        {/* Platform Filters */}
         {platforms && platforms.length > 1 && (
-          <>
-            <span className="w-px h-5 bg-[#444748]/30 mx-1" />
+          <div className="flex-shrink-0 px-10 pb-4 flex items-center gap-2 overflow-x-auto no-scrollbar">
             <button onClick={() => onPlatformFilterChange?.('all')}
-              className={`rounded-full text-[13px] px-3 py-1.5 border transition-colors whitespace-nowrap flex-shrink-0`}
+              className={`rounded-full text-[11px] px-4 py-1.5 border transition-colors whitespace-nowrap`}
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
                 backgroundColor: platformFilter === 'all' ? '#1f1f21' : 'transparent',
@@ -96,55 +112,61 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
             {platforms.map((p) => {
               const pc = PLATFORM_COLORS[p]; if (!pc) return null
               const active = platformFilter === p
-              return <button key={p} onClick={() => onPlatformFilterChange?.(p)}
-                className="rounded-full text-[13px] px-3 py-1.5 border transition-colors whitespace-nowrap flex-shrink-0"
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  backgroundColor: active ? pc.bg : 'transparent',
-                  color: active ? pc.dot : '#8e9192',
-                  borderColor: active ? pc.dot + '40' : 'transparent',
-                }}>{pc.label}</button>
-            })}
-          </>
-        )}
-      </div>
-
-      {/* Card Grid */}
-      <main className="flex-1 overflow-y-auto px-5 pb-12">
-        {topics.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-[#8e9192] text-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>No conversations found</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {topics.map((topic) => {
-              const pl = platformLabel(topic)
               return (
-                <button key={topic.id} onClick={() => onSelectTopic(topic)}
-                  className="glass text-left rounded-xl p-5 hover:border-[#444748]/80 hover:bg-[#2a2a2c] transition-all duration-300 group cursor-pointer flex flex-col h-[140px]">
-                  {/* Top row: platform badge + time */}
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: pl.dot }} />
-                      <span className="text-[11px] uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace", color: '#8e9192' }}>{pl.label}</span>
-                    </div>
-                    <span className="text-[11px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'rgba(142,145,146,0.6)' }}>{timeAgo(topic.last_active)}</span>
-                  </div>
-                  {/* Title */}
-                  <h3 className="text-[15px] font-medium text-[#e4e2e4] group-hover:text-white transition-colors line-clamp-2 leading-snug" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                    {topic.name}
-                  </h3>
-                  {/* Bottom stats */}
-                  <div className="mt-auto flex items-center gap-3" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: 'rgba(142,145,146,0.5)' }}>
-                    <span>{topic.session_count}s</span>
-                    <span>·</span>
-                    <span>{topic.message_count_exported}m</span>
-                  </div>
-                </button>
+                <button key={p} onClick={() => onPlatformFilterChange?.(p)}
+                  className="rounded-full text-[11px] px-4 py-1.5 border transition-colors whitespace-nowrap"
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    backgroundColor: active ? pc.bg : 'transparent',
+                    color: active ? pc.dot : '#8e9192',
+                    borderColor: active ? `${pc.dot}40` : 'transparent',
+                  }}>{pc.label}</button>
               )
             })}
           </div>
         )}
+
+        {/* Card Grid */}
+        <div className="flex-1 overflow-y-auto px-10 pb-12">
+          {topics.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-[#8e9192] text-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>No conversations found</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {topics.map((topic) => {
+                const platLabel = topic.platforms?.includes('claude-code') ? 'CLAUDE'
+                  : topic.is_cron ? 'SYSTEM' : 'HERMES'
+                const platDot = topic.platforms?.includes('claude-code') ? '#D4A373'
+                  : topic.is_cron ? '#8e9192' : '#3e90ff'
+
+                return (
+                  <button
+                    key={topic.id}
+                    onClick={() => onSelectTopic(topic)}
+                    className="bg-[#1b1b1d] border border-[#444748]/40 rounded-xl p-5 hover:border-[#444748]/80 hover:bg-[#2a2a2c] transition-all duration-300 group cursor-pointer flex flex-col h-[140px] text-left shadow-[0_4px_32px_rgba(0,0,0,0.15)]"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: platDot }} />
+                        <span className="text-[11px] uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace", color: '#8e9192' }}>{platLabel}</span>
+                      </div>
+                      <span className="text-[11px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'rgba(142,145,146,0.6)' }}>{timeAgo(topic.last_active)}</span>
+                    </div>
+                    <h3 className="text-[15px] font-medium text-[#e4e2e4] group-hover:text-white transition-colors line-clamp-2 leading-snug" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                      {topic.name}
+                    </h3>
+                    <div className="mt-auto flex items-center gap-3" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: 'rgba(142,145,146,0.5)' }}>
+                      <span>{topic.session_count}s</span>
+                      <span>·</span>
+                      <span>{topic.message_count_exported}m</span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   )
