@@ -32,6 +32,8 @@ _SECRET_PATTERNS = [
     (re.compile(r'Bearer\s+[a-zA-Z0-9._\-]{20,}'), 'Bearer [REDACTED]'),
     (re.compile(r'AIza[0-9A-Za-z\-_]{35}'), '[GOOGLE_API_KEY]'),
     (re.compile(r'ya29\.[0-9A-Za-z\-_]+'), '[GOOGLE_OAUTH_TOKEN]'),
+    (re.compile(r'vcp_[A-Za-z0-9]{40,}'), '[VERCEL_TOKEN]'),
+    (re.compile(r'VERCEL_TOKEN=\S+'), '[VERCEL_TOKEN]'),
 ]
 
 def redact_text(text: str) -> str:
@@ -127,6 +129,49 @@ def extract_keywords(text: str) -> set[str]:
             'here','does','doing','being','will'}
     return {w for w in re.findall(r'[a-z]{4,}', text.lower()) if w not in stop}
 
+def cluster_by_title(groups: list[dict]) -> list[list[dict]]:
+    """Cluster Claude session groups by title keyword similarity.
+    Returns a list of clusters, each a list of groups."""
+    if len(groups) <= 1:
+        return [groups]
+    
+    # Build keyword sets for each group
+    kw_map = {}
+    for i, g in enumerate(groups):
+        # Use title + first message for keywords
+        text = (g.get('name', '') or '') + ' '
+        if g.get('messages'):
+            text += (g['messages'][0].get('content', '') or '')[:200]
+        kw_map[i] = extract_keywords(text)
+    
+    # Greedy clustering
+    clustered = set()
+    clusters = []
+    
+    for i in range(len(groups)):
+        if i in clustered:
+            continue
+        cluster = [groups[i]]
+        cluster_kw = kw_map.get(i, set())
+        clustered.add(i)
+        
+        for j in range(i + 1, len(groups)):
+            if j in clustered:
+                continue
+            other_kw = kw_map.get(j, set())
+            if not cluster_kw or not other_kw:
+                continue
+            overlap = len(cluster_kw & other_kw)
+            union = len(cluster_kw | other_kw)
+            if union > 0 and overlap / union >= 0.3:
+                cluster.append(groups[j])
+                cluster_kw |= other_kw
+                clustered.add(j)
+        
+        clusters.append(cluster)
+    
+    return clusters
+
 def merge_all(hermes_topics: list[dict], vps_claude: list[dict], local_claude: list[dict]) -> list[dict]:
     all_groups = []
     
@@ -170,7 +215,7 @@ def merge_all(hermes_topics: list[dict], vps_claude: list[dict], local_claude: l
             'sessions': [norm], 'messages': msgs, 'is_cron': False,
         })
     
-    # Merge Claude sessions by project
+    # Merge Claude sessions: cluster by title within each project
     claude_by_project = defaultdict(list)
     for i, g in enumerate(all_groups):
         if 'claude-code' in g['platforms'] and g['sessions']:
@@ -182,19 +227,34 @@ def merge_all(hermes_topics: list[dict], vps_claude: list[dict], local_claude: l
     merged_groups = []
     
     for proj, indices in claude_by_project.items():
-        if len(indices) > 1:
-            merged = _merge_group_list([all_groups[i] for i in indices])
-            proj_name = proj.replace('\\', '/').split('/')[-1] or proj
-            merged['name'] = f'Claude: {proj_name}'
-            merged_groups.append(merged)
-            used.update(indices)
+        if len(indices) <= 1:
+            continue
+        
+        proj_name = proj.replace('\\', '/').split('/')[-1] or proj
+        
+        # Cluster sessions within this project by title similarity
+        clusters = cluster_by_title([all_groups[i] for i in indices])
+        
+        for cluster in clusters:
+            if len(cluster) == 1:
+                g = cluster[0]
+                g['name'] = f'Claude: {g["name"][:60]}'
+                merged_groups.append(g)
+            else:
+                merged = _merge_group_list(cluster)
+                # Use the most descriptive title as the name
+                best_name = max((g['name'] for g in cluster if g['name'] != 'Untitled'), key=len, default=f'Claude: {proj_name}')
+                merged['name'] = f'Claude: {best_name[:60]}'
+                merged_groups.append(merged)
+        
+        used.update(indices)
     
-    # Also include single-session Claude projects
+    # Single-session projects
     for proj, indices in claude_by_project.items():
         if len(indices) == 1 and indices[0] not in used:
             g = all_groups[indices[0]]
             proj_name = proj.replace('\\', '/').split('/')[-1] or proj
-            g['name'] = f'Claude: {proj_name}'
+            g['name'] = f'Claude: {g["name"][:60]}'
             merged_groups.append(g)
             used.add(indices[0])
     
