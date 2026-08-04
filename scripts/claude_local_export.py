@@ -33,6 +33,10 @@ _SECRET_PATTERNS = [
     (re.compile(r'\+1?\d{10,}'), '[PHONE]'),
     (re.compile(r'AKIA[0-9A-Z]{16}'), '[AWS_ACCESS_KEY]'),
     (re.compile(r'Bearer\s+[a-zA-Z0-9._\-]{20,}'), 'Bearer [REDACTED]'),
+    (re.compile(r'AIza[0-9A-Za-z\-_]{35}'), '[GOOGLE_API_KEY]'),
+    (re.compile(r'amzn\.m\.[0-9a-f]{32,}'), '[AMAZON_TOKEN]'),
+    (re.compile(r'ya29\.[0-9A-Za-z\-_]+'), '[GOOGLE_OAUTH_TOKEN]'),
+    (re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', re.I), '[UUID]'),
 ]
 
 def redact(text: str) -> str:

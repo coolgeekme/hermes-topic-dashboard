@@ -1,0 +1,59 @@
+name: Rebuild Topics Data
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/claude_local_sessions.json'
+  workflow_dispatch:  # manual trigger
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Run unified exporter
+        run: |
+          # Create required directories
+          mkdir -p ~/.hermes/topic_dashboard_data
+          mkdir -p ~/.hermes/claude_dashboard_data
+          mkdir -p ~/.hermes/unified_dashboard_data
+          
+          # Copy VPS exports (they're committed in the repo data dir)
+          if [ -f data/hermes_topics.json ]; then
+            cp data/hermes_topics.json ~/.hermes/topic_dashboard_data/topics.json
+          fi
+          if [ -f data/claude_vps_sessions.json ]; then
+            cp data/claude_vps_sessions.json ~/.hermes/claude_dashboard_data/claude_sessions.json
+          fi
+          
+          # Copy local Claude export to expected location
+          if [ -f public/claude_local_sessions.json ]; then
+            cp public/claude_local_sessions.json ~/.hermes/claude_dashboard_data/claude_local_sessions.json
+          fi
+          
+          # Run unified merger (simplified version)
+          python3 scripts/github_merge.py
+          
+          # Copy result to public/
+          cp ~/.hermes/unified_dashboard_data/unified_topics.json public/topics.json
+      
+      - name: Commit updated topics
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/topics.json data/
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "data: auto-rebuild topics [skip ci]"
+            git push
+          fi
