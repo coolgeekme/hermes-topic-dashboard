@@ -19,12 +19,13 @@ export default async function handler(req) {
   }
 
   try {
-    const { platform, sessions } = req.body
+    const { platform, sessions, userId } = req.body
     if (!sessions || !Array.isArray(sessions)) {
       return json({ error: 'Missing sessions array' }, { status: 400, headers })
     }
 
-    const filePath = `public/${platform}_sessions.json`
+    const userPrefix = userId ? `user_${userId}_` : ''
+    const filePath = `public/${userPrefix}${platform}_sessions.json`
     const content = JSON.stringify({ platform, sessions, exported_at: new Date().toISOString() })
     const base64 = Buffer.from(content).toString('base64')
 
