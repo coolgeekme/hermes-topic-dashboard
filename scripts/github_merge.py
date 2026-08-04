@@ -157,9 +157,19 @@ def merge_all(hermes_topics: list[dict], vps_claude: list[dict], local_claude: l
     for proj, indices in claude_by_project.items():
         if len(indices) > 1:
             merged = _merge_group_list([all_groups[i] for i in indices])
-            merged['name'] = f'Claude: {os.path.basename(proj)}'
+            proj_name = proj.replace('\\', '/').split('/')[-1] or proj
+            merged['name'] = f'Claude: {proj_name}'
             merged_groups.append(merged)
             used.update(indices)
+    
+    # Also include single-session Claude projects
+    for proj, indices in claude_by_project.items():
+        if len(indices) == 1 and indices[0] not in used:
+            g = all_groups[indices[0]]
+            proj_name = proj.replace('\\', '/').split('/')[-1] or proj
+            g['name'] = f'Claude: {proj_name}'
+            merged_groups.append(g)
+            used.add(indices[0])
     
     # Cross-platform matching
     remaining_hermes = [i for i, g in enumerate(all_groups) if 'hermes' in g['platforms'] and i not in used]
