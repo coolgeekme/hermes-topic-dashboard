@@ -1,0 +1,18 @@
+{
+  "name": "Hermes Topics",
+  "short_name": "Hermes Topics",
+  "description": "Browse and continue your Hermes AI conversations by topic",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#0c0f14",
+  "background_color": "#0c0f14",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
