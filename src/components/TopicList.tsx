@@ -125,44 +125,37 @@ export function TopicList({ topics, allTopics, search, searchOpen, onSearchChang
             )}
           </div>
         ) : (
-          <div className="space-y-0.5">
-            {topics.map((topic) => (
-              <button
-                key={topic.id}
-                onClick={() => onSelectTopic(topic)}
-                className="w-full text-left px-3 py-3 rounded-xl hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  {/* Platform dots */}
-                  <div className="flex -space-x-1">
-                    {(topic.platforms || []).map((p, pi) => {
-                      const pc = PLATFORM_COLORS[p]
-                      return <div key={p} className="w-2.5 h-2.5 rounded-full border-2 border-surface"
-                        style={{ backgroundColor: pc?.dot || '#666', zIndex: topic.platforms!.length - pi }} />
-                    })}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-[15px] text-white/80 font-normal leading-snug truncate group-hover:text-white/95 transition-colors">
-                      {topic.name}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-white/20">{topic.session_count} session{topic.session_count > 1 ? 's' : ''}</span>
-                      {topic.message_count_exported > 0 && (
-                        <span className="text-xs text-white/15">{topic.message_count_exported} msg{topic.message_count_exported > 1 ? 's' : ''}</span>
-                      )}
+          <div className="grid grid-cols-2 gap-3">
+            {topics.map((topic, i) => {
+              const ACCENT = ['#22d3ee','#a855f7','#34d399','#38bdf8','#f472b6','#fbbf24']
+              const accent = ACCENT[i % ACCENT.length]
+              return (
+                <button
+                  key={topic.id}
+                  onClick={() => onSelectTopic(topic)}
+                  className="glass text-left rounded-2xl p-4 transition-all hover:border-white/10 active:scale-[0.98] animate-fade-in"
+                >
+                  <div className="flex flex-col gap-2">
+                    {/* Platform dots + name */}
+                    <div className="flex items-start gap-2">
+                      <div className="flex -space-x-1 mt-0.5 flex-shrink-0">
+                        {(topic.platforms || []).map((p, pi) => {
+                          const pc = PLATFORM_COLORS[p]
+                          return <div key={p} className="w-2 h-2 rounded-full border-2 border-surface"
+                            style={{ backgroundColor: pc?.dot || accent, zIndex: (topic.platforms || []).length - pi }} />
+                        })}
+                      </div>
+                      <h3 className="font-medium text-white/85 text-[13px] leading-snug line-clamp-2">{topic.name}</h3>
+                    </div>
+                    {/* Stats */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-white/25">{topic.session_count}s · {topic.message_count_exported}m</span>
+                      <span className="text-[11px] text-white/20">{timeAgo(topic.last_active)}</span>
                     </div>
                   </div>
-
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <span className="text-xs text-white/20">{timeAgo(topic.last_active)}</span>
-                    <svg className="w-3.5 h-3.5 text-white/10 group-hover:text-white/25 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              )
+            })}
           </div>
         )}
       </main>
