@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { TopicsData } from './types'
 
-const DATA_URL = 'https://raw.githubusercontent.com/coolgeekme/hermes-topic-dashboard/main/public/topics.json'
+const API_BASE = 'https://hermes-topic-dashboard.vercel.app/api'
+const DATA_URL = `${API_BASE}/upload`
 
 export function useTopicsData() {
   const [data, setData] = useState<TopicsData | null>(null)
@@ -16,7 +17,10 @@ export function useTopicsData() {
     setError(null)
 
     try {
-      const url = `${DATA_URL}?t=${Date.now()}`
+      // Get userId from URL params or fallback to 'default'
+      const params = new URLSearchParams(window.location.search)
+      const userId = params.get('user') || 'default'
+      const url = `${API_BASE}/upload?user=${userId}&t=${Date.now()}`
       const res = await fetch(url, { cache: 'no-store' })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json: TopicsData = await res.json()
