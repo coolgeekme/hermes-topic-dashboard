@@ -46,7 +46,7 @@ def extract_text_content(content_blocks):
             elif t == 'tool_use':
                 name = block.get('name', 'tool')
                 inp = json.dumps(block.get('input', {}))
-                texts.append(f'[{name}: {inp[:200]}]')
+                texts.append(f'[{name}: {inp}]')
             elif t == 'tool_result':
                 content = block.get('content', '')
                 if isinstance(content, list):
@@ -54,9 +54,9 @@ def extract_text_content(content_blocks):
                         c.get('text', '') if isinstance(c, dict) else str(c)
                         for c in content
                     )
-                texts.append(f'[Result: {str(content)[:200]}]')
+                texts.append(f'[Result: {str(content)}]')
             elif t == 'thinking':
-                texts.append(f'[Thinking: {block.get("thinking", "")[:200]}]')
+                texts.append(f'[Thinking: {block.get("thinking", "")}]')
         return '\n'.join(texts) if texts else ''
     return str(content_blocks)
 
