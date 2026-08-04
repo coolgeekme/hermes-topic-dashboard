@@ -17,50 +17,36 @@ export default function App() {
   const { data, loading, error, refreshing, refresh } = useTopicsData()
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null)
   const [search, setSearch] = useState('')
-  const [searchOpen, setSearchOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState('recent')
   const [platformFilter, setPlatformFilter] = useState<string>('all')
 
   const filteredTopics = useMemo(() => {
     if (!data) return []
     let topics = data.topics
-
-    // Category filter
     const cat = CATEGORIES.find(c => c.key === activeCategory)
-    if (cat && cat.key !== 'all') {
-      topics = topics.filter(cat.test)
-    }
-
-    // Platform filter
-    if (platformFilter !== 'all') {
-      topics = topics.filter((t) => t.platforms?.includes(platformFilter))
-    }
-
-    // Search
+    if (cat && cat.key !== 'all') topics = topics.filter(cat.test)
+    if (platformFilter !== 'all') topics = topics.filter((t) => t.platforms?.includes(platformFilter))
     if (search.trim()) {
       const q = search.toLowerCase()
-      topics = topics.filter(
-        (t) => t.name.toLowerCase().includes(q) || t.messages.some((m) => m.content?.toLowerCase().includes(q))
-      )
+      topics = topics.filter((t) => t.name.toLowerCase().includes(q) || t.messages.some((m) => m.content?.toLowerCase().includes(q)))
     }
-
     return topics
   }, [data, activeCategory, platformFilter, search])
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[var(--app-height)]">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+      <div className="flex items-center justify-center min-h-[var(--app-height)] bg-[#131315]">
+        <div className="w-8 h-8 rounded-full border-2 border-[#444748] border-t-[#e4e2e4] animate-spin" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[var(--app-height)] p-6">
+      <div className="flex items-center justify-center min-h-[var(--app-height)] bg-[#131315] p-6">
         <div className="text-center">
-          <p className="text-white/30 text-sm mb-3">Couldn't load conversations</p>
-          <button onClick={refresh} className="px-4 py-2 rounded-full bg-white/5 text-white/60 text-sm hover:bg-white/10 transition-colors">Try Again</button>
+          <p className="text-[#8e9192] text-sm mb-3" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Couldn't load conversations</p>
+          <button onClick={refresh} className="px-4 py-2 rounded-full bg-[#1f1f21] text-[#e4e2e4] text-sm hover:bg-[#2a2a2c] transition-colors border border-[#444748]/50">Try Again</button>
         </div>
       </div>
     )
@@ -75,11 +61,8 @@ export default function App() {
       topics={filteredTopics}
       allTopics={data!.topics}
       search={search}
-      searchOpen={searchOpen}
       onSearchChange={setSearch}
-      onToggleSearch={() => { setSearchOpen(!searchOpen); setSearch('') }}
       onSelectTopic={setSelectedTopic}
-      generatedAt={data?.generated_at}
       refreshing={refreshing}
       onRefresh={refresh}
       platforms={data?.platforms}

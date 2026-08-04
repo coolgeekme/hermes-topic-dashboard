@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,53 +12,38 @@
 }
 
 body {
-  background: radial-gradient(ellipse at 50% 0%, rgba(34, 211, 238, 0.06) 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 100%, rgba(168, 85, 247, 0.04) 0%, transparent 50%),
-              #0c0f14;
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  background: #131315;
+  color: #e4e2e4;
   min-height: var(--app-height);
 }
 
-/* Glass card effect */
+.font-mono, .label-sm, .label-md {
+  font-family: 'JetBrains Mono', monospace;
+}
+
 .glass {
-  background: linear-gradient(180deg, rgba(17, 22, 31, 0.85), rgba(12, 15, 20, 0.85));
-  border: 1px solid #1e2630;
-  backdrop-filter: blur(12px);
+  background: #1b1b1d;
+  border: 1px solid rgba(68, 71, 72, 0.4);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.15);
+  transition: border-color 0.3s, background-color 0.3s;
 }
-
 .glass:hover {
-  border-color: rgba(34, 211, 238, 0.25);
+  border-color: rgba(68, 71, 72, 0.8);
+  background: #2a2a2c;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #1e2630; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #2a3340; }
+::-webkit-scrollbar-thumb { background: #353437; border-radius: 2px; }
 
-/* Message bubble animations */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 .msg-enter {
   animation: slideUp 0.25s ease-out both;
 }
-
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
-/* Topic card accent lines */
-.topic-accent {
-  position: relative;
-}
-.topic-accent::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  border-radius: 3px 0 0 3px;
-}
-
-/* Hide scrollbar for category pills */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
