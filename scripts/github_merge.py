@@ -130,21 +130,39 @@ def extract_keywords(text: str) -> set[str]:
     return {w for w in re.findall(r'[a-z]{4,}', text.lower()) if w not in stop}
 
 def cluster_by_title(groups: list[dict]) -> list[list[dict]]:
-    """Cluster Claude session groups by title keyword similarity.
-    Returns a list of clusters, each a list of groups."""
+    """Cluster Claude session groups by title similarity.
+    Uses proper nouns and project names as primary signals, keywords as secondary."""
     if len(groups) <= 1:
         return [groups]
     
-    # Build keyword sets for each group
-    kw_map = {}
+    # Phase 1: Extract proper nouns and project-like names from titles
+    # These are strong contextual signals (e.g., "soulprintpro", "DisciplinedOS")
+    def extract_proper_nouns(text: str) -> set[str]:
+        """Extract capitalized words, CamelCase, and repo-like names."""
+        if not text:
+            return set()
+        nouns = set()
+        # CamelCase / PascalCase words (e.g., DisciplinedOS, VisionKinetix)
+        nouns.update(re.findall(r'[A-Z][a-z]+(?:[A-Z][a-z]+)+', text))
+        # Lowercase project names (e.g., soulprintpro, bizgrowthai, dateniteai)
+        nouns.update(re.findall(r'\b([a-z]{4,}(?:[a-z]{4,}){1,})\b', text.lower()))
+        # Capitalized single words (proper nouns)
+        nouns.update(w for w in re.findall(r'\b[A-Z][a-z]{3,}\b', text) 
+                    if w.lower() not in {'Claude', 'Code', 'This', 'That', 'What', 'When', 
+                                         'Where', 'Which', 'There', 'Their', 'About', 'Would',
+                                         'Could', 'Should', 'Your', 'They', 'Some', 'Just',
+                                         'Like', 'Also', 'Very', 'Only', 'Other', 'More', 'Here'})
+        return nouns
+    
+    # Build proper noun sets
+    pn_map = {}
     for i, g in enumerate(groups):
-        # Use title + first message for keywords
         text = (g.get('name', '') or '') + ' '
         if g.get('messages'):
             text += (g['messages'][0].get('content', '') or '')[:200]
-        kw_map[i] = extract_keywords(text)
+        pn_map[i] = extract_proper_nouns(text)
     
-    # Greedy clustering
+    # Phase 2: Greedy clustering — first by proper nouns, then by keywords
     clustered = set()
     clusters = []
     
@@ -152,21 +170,39 @@ def cluster_by_title(groups: list[dict]) -> list[list[dict]]:
         if i in clustered:
             continue
         cluster = [groups[i]]
-        cluster_kw = kw_map.get(i, set())
+        cluster_pn = pn_map.get(i, set())
         clustered.add(i)
         
+        # First pass: match by proper noun overlap (strong signal)
         for j in range(i + 1, len(groups)):
             if j in clustered:
                 continue
-            other_kw = kw_map.get(j, set())
-            if not cluster_kw or not other_kw:
-                continue
-            overlap = len(cluster_kw & other_kw)
-            union = len(cluster_kw | other_kw)
-            if union > 0 and overlap / union >= 0.3:
+            other_pn = pn_map.get(j, set())
+            if cluster_pn and other_pn and (cluster_pn & other_pn):
                 cluster.append(groups[j])
-                cluster_kw |= other_kw
+                cluster_pn |= other_pn
                 clustered.add(j)
+        
+        # Second pass: match remaining by keyword overlap
+        if len(cluster) == 1:
+            cluster_kw = extract_keywords(
+                (groups[i].get('name', '') or '') + ' ' +
+                ((groups[i].get('messages') or [{}])[0].get('content', '') or '')[:200]
+            )
+            for j in range(i + 1, len(groups)):
+                if j in clustered:
+                    continue
+                other_kw = extract_keywords(
+                    (groups[j].get('name', '') or '') + ' ' +
+                    ((groups[j].get('messages') or [{}])[0].get('content', '') or '')[:200]
+                )
+                if not cluster_kw or not other_kw:
+                    continue
+                overlap = len(cluster_kw & other_kw)
+                union = len(cluster_kw | other_kw)
+                if union > 0 and overlap / union >= 0.3:
+                    cluster.append(groups[j])
+                    clustered.add(j)
         
         clusters.append(cluster)
     
