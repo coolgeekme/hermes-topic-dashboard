@@ -1,48 +1,44 @@
+import { put, list } from '@vercel/blob'
 import { json } from '@vercel/node'
 
-const BLOB_URL = `https://${process.env.BLOB_STORE_ID || 'hermes-dashboard'}.public.blob.vercel-storage.com`
-
 export default async function handler(req) {
+  const headers = { 'Access-Control-Allow-Origin': '*' }
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers })
+  }
+
   if (req.method !== 'POST') {
-    return json({ error: 'POST only' }, { status: 405, headers: { 'Access-Control-Allow-Origin': '*' } })
+    return json({ error: 'POST only' }, { status: 405, headers })
   }
 
   try {
-    const userId = new URL(req.url).searchParams.get('userId') || 'default'
+    const url = new URL(req.url)
+    const userId = url.searchParams.get('userId') || 'default'
     
-    // Fetch all platform session files from Blob
     const platforms = ['hermes', 'claude-code', 'chatgpt-web', 'claude-web']
     const allSessions = []
 
     for (const platform of platforms) {
-      const fileUrl = `${BLOB_URL}/${userId}/${platform}_sessions.json`
+      const prefix = `${userId}/${platform}_sessions`
       try {
-        const res = await fetch(fileUrl, { cache: 'no-store' })
-        if (res.ok) {
+        const { blobs } = await list({ prefix, limit: 1 })
+        if (blobs.length > 0) {
+          const res = await fetch(blobs[0].url)
           const data = await res.json()
-          if (Array.isArray(data)) {
-            // Normalize platform field
-            for (const s of data) {
-              s.platform = s.platform || platform
-            }
-            allSessions.push(...data)
-          } else if (data.sessions) {
-            for (const s of data.sessions) {
-              s.platform = s.platform || platform
-            }
-            allSessions.push(...data.sessions)
+          const sessions = Array.isArray(data) ? data : (data.sessions || [])
+          for (const s of sessions) {
+            s.platform = s.platform || platform
           }
+          allSessions.push(...sessions)
         }
       } catch {}
     }
 
     if (allSessions.length === 0) {
-      return json({ ok: true, topics: 0, sessions: 0 }, {
-        headers: { 'Access-Control-Allow-Origin': '*' }
-      })
+      return json({ ok: true, topics: 0, sessions: 0 }, { headers })
     }
 
-    // Simple topic grouping by title keyword similarity
     const topics = clusterByTitle(allSessions)
     
     const output = {
@@ -53,52 +49,33 @@ export default async function handler(req) {
       topics: topics.slice(0, 100),
     }
 
-    // Upload unified topics to Blob
-    const putUrl = `${BLOB_URL}/${userId}/unified_topics.json`
-    await fetch(putUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-vercel-blob-access': 'public',
-      },
-      body: JSON.stringify(output)
+    await put(`${userId}/unified_topics.json`, JSON.stringify(output), {
+      access: 'public',
+      contentType: 'application/json',
     })
 
-    return json({ ok: true, topics: topics.length, sessions: allSessions.length }, {
-      headers: { 'Access-Control-Allow-Origin': '*' }
-    })
+    return json({ ok: true, topics: topics.length, sessions: allSessions.length }, { headers })
   } catch (e) {
-    return json({ error: e.message }, { status: 500, headers: { 'Access-Control-Allow-Origin': '*' } })
+    return json({ error: e.message }, { status: 500, headers })
   }
 }
 
-// Simple title-based clustering
 function clusterByTitle(sessions) {
   const groups = new Map()
-  
   for (const s of sessions) {
     const title = (s.title || 'Untitled').toLowerCase()
-    // Group by platform + first 3 words
     const key = `${s.platform}:${title.split(/\s+/).slice(0, 3).join(' ')}`
-    
     if (!groups.has(key)) {
-      groups.set(key, {
-        name: s.title || 'Untitled',
-        platforms: [s.platform],
-        sessions: [],
-        message_count: 0,
-      })
+      groups.set(key, { name: s.title || 'Untitled', platforms: [s.platform], sessions: [], message_count: 0 })
     }
-    
     const g = groups.get(key)
     g.sessions.push(s)
     g.message_count += s.message_count || 0
   }
-
   return Array.from(groups.values()).map(g => ({
     id: g.name.toLowerCase().replace(/\s+/g, '-').slice(0, 40),
     name: g.name.slice(0, 80),
-    platforms: [...new Set(g.platforms.map(s => s.platform))],
+    platforms: [...new Set(g.sessions.map(s => s.platform))],
     session_count: g.sessions.length,
     message_count: g.message_count,
     message_count_exported: Math.min(g.sessions.reduce((sum, s) => sum + (s.messages?.length || 0), 0), 500),
