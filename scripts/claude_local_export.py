@@ -48,7 +48,6 @@ def parse_session_metadata(filepath: str) -> dict | None:
     first_ts = None
     last_ts = None
     msg_count = 0
-    first_prompt = None
     
     for line in lines:
         try:
@@ -73,14 +72,6 @@ def parse_session_metadata(filepath: str) -> dict | None:
                 first_ts = ts
             last_ts = ts
             msg_count += 1
-            if not first_prompt:
-                content = entry.get('content') or entry.get('message', {}).get('content', '')
-                if isinstance(content, list):
-                    first_prompt = ' '.join(
-                        b.get('text', '') for b in content if isinstance(b, dict) and b.get('type') == 'text'
-                    )[:200]
-                elif isinstance(content, str):
-                    first_prompt = content[:200]
         
         if t == 'assistant':
             ts = entry.get('timestamp', '')
@@ -98,8 +89,7 @@ def parse_session_metadata(filepath: str) -> dict | None:
         'started_at': first_ts or '',
         'last_active': last_ts or first_ts or '',
         'message_count': msg_count,
-        'first_prompt': first_prompt or '',
-        'messages': [],  # empty — content stays local
+        'messages': [],
     }
 
 def export_all() -> list[dict]:
