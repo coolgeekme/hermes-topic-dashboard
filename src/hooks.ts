@@ -9,6 +9,7 @@ export function useTopicsData() {
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -16,6 +17,11 @@ export function useTopicsData() {
     setError(null)
 
     try {
+      // Read userId from URL
+      const params = new URLSearchParams(window.location.search)
+      const uid = params.get('user')
+      if (uid) setUserId(uid)
+
       const url = `${DATA_URL}?t=${Date.now()}`
       const res = await fetch(url, { cache: 'no-store' })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -32,7 +38,7 @@ export function useTopicsData() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  return { data, loading, error, refreshing, lastRefresh, refresh: () => fetchData(true) }
+  return { data, loading, error, refreshing, lastRefresh, refresh: () => fetchData(true), userId }
 }
 
 export const PLATFORM_COLORS: Record<string, { dot: string; bg: string; label: string }> = {
