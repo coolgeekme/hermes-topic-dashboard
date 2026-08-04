@@ -35,8 +35,10 @@ jobs:
             cp data/claude_vps_sessions.json ~/.hermes/claude_dashboard_data/claude_sessions.json
           fi
           
-          # Copy local Claude export to expected location
-          if [ -f public/claude_local_sessions.json ]; then
+          # Copy local Claude export (tar.gz or JSON)
+          if [ -f public/claude_local_sessions.tar.gz ]; then
+            cp public/claude_local_sessions.tar.gz ~/.hermes/claude_dashboard_data/claude_local_sessions.tar.gz
+          elif [ -f public/claude_local_sessions.json ]; then
             cp public/claude_local_sessions.json ~/.hermes/claude_dashboard_data/claude_local_sessions.json
           fi
           

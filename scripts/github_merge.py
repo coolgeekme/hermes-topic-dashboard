@@ -59,12 +59,28 @@ def load_hermes_data() -> list[dict]:
         return json.load(f).get('topics', [])
 
 def load_sessions(path: str, label: str) -> list[dict]:
+    """Load sessions from JSON or compressed tar.gz."""
     if not os.path.exists(path):
         return []
-    with open(path) as f:
-        data = json.load(f)
+    
+    # Check if it's a tar.gz
+    if path.endswith('.tar.gz'):
+        import tarfile
+        with tarfile.open(path, 'r:gz') as tar:
+            member = tar.getmember('claude_local_sessions.json')
+            f = tar.extractfile(member)
+            if f:
+                data = json.loads(f.read().decode('utf-8'))
+            else:
+                return []
+    else:
+        with open(path) as f:
+            data = json.load(f)
+    
     sessions = data.get('sessions', [])
-    # If it's the local export format, normalize
+    if sessions:
+        msgs = sum(s.get('message_count', 0) for s in sessions)
+        print(f"Loaded {len(sessions)} {label} sessions ({msgs} msgs)")
     return sessions
 
 # ── Normalize ─────────────────────────────────────────────────────────
