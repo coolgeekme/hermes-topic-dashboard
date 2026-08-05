@@ -148,6 +148,14 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
 
         {/* Card Grid */}
         <div className="flex-1 overflow-y-auto px-10 pb-12">
+          {/* Stats bar */}
+          <div className="flex items-center gap-6 mb-6 text-[11px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-muted)' }}>
+            <span>{allTopics.length} conversations</span>
+            {platforms && platforms.length > 1 && <span>across {platforms.length} platforms</span>}
+            <span>{allTopics.reduce((s, t) => s + t.message_count_exported, 0).toLocaleString()} messages</span>
+            {pinned.size > 0 && <span style={{ color: 'var(--text)' }}>{pinned.size} pinned</span>}
+          </div>
+
           {topics.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text-muted)' }}>
@@ -215,6 +223,26 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
                         <p className="text-[12px] line-clamp-1 mt-1" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text-subtle)' }}>
                           {prefix}{clean.slice(0, 120)}
                         </p>
+                      )
+                    })()}
+                    {/* Status line */}
+                    {(() => {
+                      const daysSince = (Date.now() / 1000 - topic.last_active) / 86400
+                      const isStale = daysSince > 3
+                      const isWeekOld = daysSince > 7
+                      const hasManyMsgs = topic.message_count_exported > 200
+                      let status: string | null = null
+                      if (topic.session_count > 1 && hasManyMsgs && !isWeekOld) status = 'Active'
+                      else if (isStale && hasManyMsgs) status = 'Needs follow-up'
+                      else if (isWeekOld && topic.session_count === 1 && topic.message_count_exported < 10) status = null
+                      else if (daysSince > 14) status = null
+                      else status = null
+                      if (!status) return null
+                      const color = status === 'Needs follow-up' ? '#D4A373' : 'var(--text-muted)'
+                      return (
+                        <span className="text-[10px] mt-1 inline-block" style={{ fontFamily: "'JetBrains Mono', monospace", color }}>
+                          {status}
+                        </span>
                       )
                     })()}
                     <div className="mt-auto flex items-center gap-3" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: 'var(--text-stat)' }}>
