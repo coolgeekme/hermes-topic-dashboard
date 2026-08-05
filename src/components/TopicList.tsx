@@ -204,6 +204,19 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
                     <h3 className="text-[15px] font-medium group-hover:opacity-90 transition-opacity line-clamp-2 leading-snug" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text)' }}>
                       {topic.name}
                     </h3>
+                    {/* Message preview */}
+                    {(() => {
+                      const last = topic.messages?.[topic.messages.length - 1]
+                      if (!last?.content) return null
+                      const clean = last.content.replace(/\[(?:STRIPE|ANTHROPIC|VERCEL|GOOGLE|OPENAI)[^\]]*\]/g, '').replace(/\s+/g, ' ').trim()
+                      if (!clean) return null
+                      const prefix = last.role === 'user' ? 'You: ' : ''
+                      return (
+                        <p className="text-[12px] line-clamp-1 mt-1" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text-subtle)' }}>
+                          {prefix}{clean.slice(0, 120)}
+                        </p>
+                      )
+                    })()}
                     <div className="mt-auto flex items-center gap-3" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: 'var(--text-stat)' }}>
                       <span>{topic.session_count}s</span>
                       <span>·</span>
