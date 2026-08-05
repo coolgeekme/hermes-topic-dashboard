@@ -1,6 +1,7 @@
 import { PLATFORM_COLORS } from '../hooks'
 import type { Topic } from '../types'
 import { Sunburst } from './Sunburst'
+import { Mindmap } from './Mindmap'
 
 interface NavItem { key: string; label: string; icon: string; test: (t: Topic) => boolean }
 
@@ -22,7 +23,7 @@ interface Props {
   onTogglePin: (id: string) => void
   theme: 'dark' | 'light'
   onToggleTheme: () => void
-  viewMode: 'cards' | 'sunburst'
+  viewMode: 'cards' | 'sunburst' | 'mindmap'
   onToggleView: () => void
 }
 
@@ -116,7 +117,7 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
 
           <div className="flex items-center gap-3 ml-8">
             <button onClick={onToggleView} className="p-2 rounded-full transition-colors" style={{ color: 'var(--sidebar-text)' }} title={viewMode === 'cards' ? 'Sunburst view' : 'Card view'}>
-              <span className="text-[18px]">{viewMode === 'cards' ? '⊚' : '⊞'}</span>
+              <span className="text-[18px]">{viewMode === 'cards' ? '⊚' : viewMode === 'sunburst' ? '◉' : '⊞'}</span>
             </button>
             <button onClick={onRefresh} disabled={refreshing} className="p-2 rounded-full transition-colors" style={{ color: 'var(--sidebar-text)' }}>
               <span className={`text-[20px] ${refreshing ? 'animate-spin inline-block' : ''}`}>{Icons.refresh}</span>
@@ -164,6 +165,8 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
 
           {viewMode === 'sunburst' ? (
             <Sunburst topics={topics} onSelectTopic={onSelectTopic} />
+          ) : viewMode === 'mindmap' ? (
+            <Mindmap topics={topics} onSelectTopic={onSelectTopic} />
           ) : topics.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text-muted)' }}>
