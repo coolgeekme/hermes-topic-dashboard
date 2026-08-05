@@ -42,11 +42,11 @@ export function useTopicsData() {
 }
 
 export const PLATFORM_COLORS: Record<string, { dot: string; bg: string; label: string }> = {
-  'hermes': { dot: '#22d3ee', bg: 'rgba(34,211,238,0.1)', label: 'Hermes' },
-  'claude-code': { dot: '#a855f7', bg: 'rgba(168,85,247,0.1)', label: 'Claude' },
-  'chatgpt-web': { dot: '#34d399', bg: 'rgba(52,211,153,0.1)', label: 'ChatGPT' },
-  'claude-web': { dot: '#D4A373', bg: 'rgba(212,163,115,0.1)', label: 'Claude.ai' },
-  'codex': { dot: '#38bdf8', bg: 'rgba(56,189,248,0.1)', label: 'Codex' },
+  'hermes': { dot: '#d2bbff', bg: 'rgba(124,58,237,0.15)', label: 'Hermes' },
+  'claude-code': { dot: '#4edea3', bg: 'rgba(0,165,114,0.15)', label: 'Claude' },
+  'chatgpt-web': { dot: '#adc6ff', bg: 'rgba(0,98,210,0.15)', label: 'ChatGPT' },
+  'claude-web': { dot: '#4edea3', bg: 'rgba(0,165,114,0.15)', label: 'Claude.ai' },
+  'codex': { dot: '#4edea3', bg: 'rgba(78,222,163,0.15)', label: 'Codex' },
 }
 
 export const ACCENT_COLORS = [

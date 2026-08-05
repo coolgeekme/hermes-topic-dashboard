@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;900&family=Inter:wght@400;500;600&family=Geist:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,66 +6,69 @@
 
 :root {
   --app-height: 100vh;
-  /* Dark theme (default) */
-  --bg: #131315;
-  --bg-nav: #131315;
-  --card-bg: #1b1b1d;
-  --card-border: rgba(68, 71, 72, 0.4);
-  --card-hover-bg: #2a2a2c;
-  --card-hover-border: rgba(68, 71, 72, 0.8);
-  --text: #e4e2e4;
-  --text-muted: #8e9192;
-  --text-subtle: rgba(142, 145, 146, 0.6);
-  --text-stat: rgba(142, 145, 146, 0.5);
-  --sidebar-text: #c4c7c8;
-  --sidebar-active-bg: #1b1b1d;
-  --sidebar-active-text: #ffffff;
-  --border: #444748;
-  --input-bg: #1f1f21;
-  --input-border: rgba(68, 71, 72, 0.5);
-  --input-placeholder: rgba(142, 145, 146, 0.7);
-  --topbar-bg: rgba(19, 19, 21, 0.95);
-  --hover-bg: #2a2a2c;
-  --filter-bg: #1f1f21;
-  --filter-text: #8e9192;
-  --filter-active-text: #e4e2e4;
-  --filter-active-border: #444748;
-  --shadow-card: 0 4px 32px rgba(0, 0, 0, 0.15);
+  /* Kinetic Logic — Dark */
+  --bg: #0b1326;
+  --bg-deep: #020617;
+  --bg-nav: #131b2e;
+  --card-bg: #131b2e;
+  --card-border: #4a4455;
+  --card-hover-bg: #171f33;
+  --card-hover-border: #958da1;
+  --text: #dae2fd;
+  --text-muted: #ccc3d8;
+  --text-subtle: rgba(204, 195, 216, 0.5);
+  --text-stat: rgba(204, 195, 216, 0.4);
+  --sidebar-text: #ccc3d8;
+  --sidebar-active-bg: #00a572;
+  --sidebar-active-text: #00311f;
+  --border: #4a4455;
+  --input-bg: #0b1326;
+  --input-border: #4a4455;
+  --topbar-bg: rgba(2, 6, 23, 0.9);
+  --hover-bg: #222a3d;
+  --filter-bg: #171f33;
+  --filter-text: #958da1;
+  --filter-active-text: #dae2fd;
+  --filter-active-border: #4a4455;
+  --shadow-card: 0 10px 30px rgba(0,0,0,0.3);
   --pin-opacity: 0.6;
-  --divider: rgba(68, 71, 72, 0.3);
+  --divider: rgba(74, 68, 85, 0.4);
   --error-text: #ffb4ab;
-  --success-text: #42e355;
+  --success-text: #4edea3;
+  /* Platform accents */
+  --accent-hermes: #7c3aed;
+  --accent-claude: #00a572;
+  --accent-chatgpt: #0062d2;
+  --accent-codex: #4edea3;
+  --accent-system: #958da1;
 }
 
 .light {
-  --bg: #f5f5f7;
-  --bg-nav: #f0f0f2;
+  --bg: #f0f2f8;
+  --bg-deep: #e5e7f0;
+  --bg-nav: #e8eaf3;
   --card-bg: #ffffff;
-  --card-border: rgba(0, 0, 0, 0.08);
+  --card-border: #d1d5e0;
   --card-hover-bg: #ffffff;
-  --card-hover-border: rgba(0, 0, 0, 0.15);
-  --text: #1a1a1a;
-  --text-muted: #6e6e73;
-  --text-subtle: rgba(0, 0, 0, 0.4);
-  --text-stat: rgba(0, 0, 0, 0.35);
-  --sidebar-text: #555558;
-  --sidebar-active-bg: #e8e8ed;
-  --sidebar-active-text: #1a1a1a;
-  --border: #d2d2d7;
-  --input-bg: #e8e8ed;
-  --input-border: rgba(0, 0, 0, 0.1);
-  --input-placeholder: rgba(0, 0, 0, 0.3);
-  --topbar-bg: rgba(245, 245, 247, 0.95);
-  --hover-bg: #e8e8ed;
-  --filter-bg: #e8e8ed;
-  --filter-text: #6e6e73;
-  --filter-active-text: #1a1a1a;
-  --filter-active-border: #d2d2d7;
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-  --pin-opacity: 0.5;
-  --divider: rgba(0, 0, 0, 0.08);
-  --error-text: #d32f2f;
-  --success-text: #1b8a3d;
+  --card-hover-border: #9ca3b8;
+  --text: #0f172a;
+  --text-muted: #4b5568;
+  --text-subtle: rgba(0,0,0,0.35);
+  --text-stat: rgba(0,0,0,0.3);
+  --sidebar-text: #4b5568;
+  --sidebar-active-bg: #00a572;
+  --sidebar-active-text: #00311f;
+  --border: #d1d5e0;
+  --input-bg: #ffffff;
+  --input-border: #d1d5e0;
+  --topbar-bg: rgba(240,242,248,0.95);
+  --hover-bg: #e5e7f0;
+  --filter-bg: #e5e7f0;
+  --filter-text: #6b7280;
+  --filter-active-text: #0f172a;
+  --filter-active-border: #d1d5e0;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+  --divider: rgba(0,0,0,0.06);
 }
 
 @supports (height: 100dvh) {
@@ -73,38 +76,18 @@
 }
 
 body {
-  font-family: 'Hanken Grotesk', system-ui, sans-serif;
-  background: var(--bg);
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-deep);
   color: var(--text);
   min-height: var(--app-height);
-  transition: background-color 0.3s, color 0.3s;
-}
-
-.font-mono, .label-sm, .label-md {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.glass {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  box-shadow: var(--shadow-card);
-  transition: border-color 0.3s, background-color 0.3s, box-shadow 0.3s;
-}
-.glass:hover {
-  border-color: var(--card-hover-border);
-  background: var(--card-hover-bg);
 }
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-.msg-enter {
-  animation: slideUp 0.25s ease-out both;
-}
+.msg-enter { animation: slideUp 0.25s ease-out both; }
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }

@@ -176,89 +176,91 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {topics.map((topic) => {
-                const platDot = PLATFORM_COLORS[topic.platforms?.[0]]?.dot || '#8e9192'
-                const platLabel = PLATFORM_COLORS[topic.platforms?.[0]]?.label
-                  || (topic.platforms?.includes('claude-code') ? 'CLAUDE' : 'HERMES')
+                const pc = PLATFORM_COLORS[topic.platforms?.[0] || '']
+                const accentColor = pc?.dot || '#958da1'
                 const isPinned = pinned.has(topic.id)
+                const category = topic.platforms?.includes('claude-code') ? 'Development'
+                  : /instagram|linkedin|social/i.test(topic.name) ? 'Marketing'
+                  : /github|repo|code|build|app|api|deploy/i.test(topic.name) ? 'Development'
+                  : /ollama|llm|model|ai|agent|hermes/i.test(topic.name) ? 'Research'
+                  : /email|gmail|calendar|room|clean|buy/i.test(topic.name) ? 'Personal'
+                  : topic.is_cron ? 'System' : 'Research'
 
                 return (
                   <button
                     key={topic.id}
                     onClick={() => onSelectTopic(topic)}
-                    className="glass rounded-xl p-5 group cursor-pointer flex flex-col h-[140px] text-left relative"
+                    className="rounded-xl overflow-hidden flex flex-col relative group transition-all duration-300 text-left cursor-pointer"
+                    style={{
+                      backgroundColor: 'var(--card-bg)',
+                      border: '1px solid var(--card-border)',
+                    }}
+                    onMouseEnter={(e) => {
+                      const el = e.currentTarget
+                      el.style.borderColor = 'var(--card-hover-border)'
+                      el.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)'
+                    }}
+                    onMouseLeave={(e) => {
+                      const el = e.currentTarget
+                      el.style.borderColor = 'var(--card-border)'
+                      el.style.boxShadow = ''
+                    }}
                   >
-                    {/* Pin button */}
-                    <span
-                      onClick={(e) => { e.stopPropagation(); onTogglePin(topic.id) }}
-                      className="absolute top-3 right-3 p-1 rounded-md transition-colors z-10"
-                      style={{
-                        fontSize: '14px',
-                        opacity: isPinned ? 0.8 : 0,
-                        filter: isPinned ? 'none' : 'grayscale(1)',
-                        backgroundColor: 'transparent',
-                      }}
-                      title={isPinned ? 'Unpin' : 'Pin'}
-                      onMouseEnter={(e) => {
-                        const t = e.target as HTMLElement
-                        t.style.opacity = '0.8'; t.style.filter = 'none'
-                        t.style.backgroundColor = 'var(--hover-bg)'
-                      }}
-                      onMouseLeave={(e) => {
-                        const t = e.target as HTMLElement
-                        if (!isPinned) {
-                          t.style.opacity = '0'; t.style.filter = 'grayscale(1)'
-                        }
-                        t.style.backgroundColor = 'transparent'
-                      }}
-                    >📌</span>
+                    {/* Colored top accent bar */}
+                    <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: accentColor, boxShadow: `0 0 10px ${accentColor}80` }} />
 
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: platDot }} />
-                        <span className="text-[11px] uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-muted)' }}>{platLabel}</span>
+                    {/* Header: icon + category + time */}
+                    <div className="p-4 border-b flex justify-between items-start" style={{ borderColor: 'var(--card-border)', backgroundColor: 'var(--bg-nav)' }}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center border" style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--card-border)', color: accentColor }}>
+                          <span className="text-[20px]">{pc?.label === 'Claude' ? '🧠' : pc?.label === 'ChatGPT' ? '💬' : '◆'}</span>
+                        </div>
+                        <div>
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight border mb-1"
+                            style={{ backgroundColor: pc?.bg || 'rgba(149,141,161,0.1)', color: accentColor, borderColor: accentColor + '30' }}>
+                            {category}
+                          </span>
+                          <h3 className="text-[15px] font-semibold line-clamp-1" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text)' }}>
+                            {topic.name.slice(0, 60)}
+                          </h3>
+                          <span className="text-[11px]" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>
+                            Active {timeAgo(topic.last_active)} ago
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-[11px] mr-6" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-subtle)' }}>{timeAgo(topic.last_active)}</span>
+                      {/* Pin */}
+                      <span
+                        onClick={(e) => { e.stopPropagation(); onTogglePin(topic.id) }}
+                        className="p-1 rounded-md transition-colors"
+                        style={{ fontSize: '14px', opacity: isPinned ? 0.8 : 0.2, filter: isPinned ? 'none' : 'grayscale(1)' }}
+                        title={isPinned ? 'Unpin' : 'Pin'}
+                      >📌</span>
                     </div>
-                    <h3 className="text-[15px] font-medium group-hover:opacity-90 transition-opacity line-clamp-2 leading-snug" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text)' }}>
-                      {topic.name}
-                    </h3>
-                    {/* Message preview */}
-                    {(() => {
-                      const last = topic.messages?.[topic.messages.length - 1]
-                      if (!last?.content) return null
-                      const clean = last.content.replace(/\[(?:STRIPE|ANTHROPIC|VERCEL|GOOGLE|OPENAI)[^\]]*\]/g, '').replace(/\s+/g, ' ').trim()
-                      if (!clean) return null
-                      const prefix = last.role === 'user' ? 'You: ' : ''
-                      return (
-                        <p className="text-[12px] line-clamp-1 mt-1" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text-subtle)' }}>
-                          {prefix}{clean.slice(0, 120)}
-                        </p>
-                      )
-                    })()}
-                    {/* Status line */}
-                    {(() => {
-                      const daysSince = (Date.now() / 1000 - topic.last_active) / 86400
-                      const isStale = daysSince > 3
-                      const isWeekOld = daysSince > 7
-                      const hasManyMsgs = topic.message_count_exported > 200
-                      let status: string | null = null
-                      if (topic.session_count > 1 && hasManyMsgs && !isWeekOld) status = 'Active'
-                      else if (isStale && hasManyMsgs) status = 'Needs follow-up'
-                      else if (isWeekOld && topic.session_count === 1 && topic.message_count_exported < 10) status = null
-                      else if (daysSince > 14) status = null
-                      else status = null
-                      if (!status) return null
-                      const color = status === 'Needs follow-up' ? '#D4A373' : 'var(--text-muted)'
-                      return (
-                        <span className="text-[10px] mt-1 inline-block" style={{ fontFamily: "'JetBrains Mono', monospace", color }}>
-                          {status}
-                        </span>
-                      )
-                    })()}
-                    <div className="mt-auto flex items-center gap-3" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: 'var(--text-stat)' }}>
-                      <span>{topic.session_count}s</span>
-                      <span>·</span>
-                      <span>{topic.message_count_exported}m</span>
+
+                    {/* Stats */}
+                    <div className="p-4 flex-1 flex flex-col gap-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-2.5 rounded-lg border" style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--card-border)' }}>
+                          <span className="block mb-1 text-[10px] uppercase tracking-wider" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>Sessions</span>
+                          <span className="font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text)' }}>{topic.session_count}</span>
+                        </div>
+                        <div className="p-2.5 rounded-lg border" style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--card-border)' }}>
+                          <span className="block mb-1 text-[10px] uppercase tracking-wider" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>Messages</span>
+                          <span className="font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text)' }}>{topic.message_count_exported}</span>
+                        </div>
+                      </div>
+                      {/* Platform chip */}
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {(topic.platforms || []).map((p) => {
+                          const c = PLATFORM_COLORS[p]
+                          if (!c) return null
+                          return (
+                            <span key={p} className="px-2 py-1 rounded-md text-[11px] font-medium border" style={{ fontFamily: "'Geist', monospace", backgroundColor: c.bg, borderColor: c.dot + '40', color: c.dot }}>
+                              {c.label}
+                            </span>
+                          )
+                        })}
+                      </div>
                     </div>
                   </button>
                 )
