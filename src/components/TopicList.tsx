@@ -1,5 +1,6 @@
 import { PLATFORM_COLORS } from '../hooks'
 import type { Topic } from '../types'
+import { Sunburst } from './Sunburst'
 
 interface NavItem { key: string; label: string; icon: string; test: (t: Topic) => boolean }
 
@@ -21,6 +22,8 @@ interface Props {
   onTogglePin: (id: string) => void
   theme: 'dark' | 'light'
   onToggleTheme: () => void
+  viewMode: 'cards' | 'sunburst'
+  onToggleView: () => void
 }
 
 function timeAgo(ts: number): string {
@@ -40,7 +43,7 @@ const Icons: Record<string, string> = {
   search: '⌕', refresh: '↻', push_pin: '📌',
 }
 
-export function TopicList({ topics, allTopics, search, onSearchChange, onSelectTopic, refreshing, onRefresh, platforms, platformFilter, onPlatformFilterChange, activeNav, onNavChange, navItems, pinned, onTogglePin, theme, onToggleTheme }: Props) {
+export function TopicList({ topics, allTopics, search, onSearchChange, onSelectTopic, refreshing, onRefresh, platforms, platformFilter, onPlatformFilterChange, activeNav, onNavChange, navItems, pinned, onTogglePin, theme, onToggleTheme, viewMode, onToggleView }: Props) {
   return (
     <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg)' }}>
       {/* Sidebar */}
@@ -111,7 +114,10 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
             </div>
           </div>
 
-          <div className="flex items-center gap-4 ml-8">
+          <div className="flex items-center gap-3 ml-8">
+            <button onClick={onToggleView} className="p-2 rounded-full transition-colors" style={{ color: 'var(--sidebar-text)' }} title={viewMode === 'cards' ? 'Sunburst view' : 'Card view'}>
+              <span className="text-[18px]">{viewMode === 'cards' ? '⊚' : '⊞'}</span>
+            </button>
             <button onClick={onRefresh} disabled={refreshing} className="p-2 rounded-full transition-colors" style={{ color: 'var(--sidebar-text)' }}>
               <span className={`text-[20px] ${refreshing ? 'animate-spin inline-block' : ''}`}>{Icons.refresh}</span>
             </button>
@@ -156,7 +162,9 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
             {pinned.size > 0 && <span style={{ color: 'var(--text)' }}>{pinned.size} pinned</span>}
           </div>
 
-          {topics.length === 0 ? (
+          {viewMode === 'sunburst' ? (
+            <Sunburst topics={topics} onSelectTopic={onSelectTopic} />
+          ) : topics.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text-muted)' }}>
                 {activeNav === 'pinned' ? 'No pinned conversations' : 'No conversations found'}

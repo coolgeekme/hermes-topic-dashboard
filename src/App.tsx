@@ -28,6 +28,7 @@ export default function App() {
     const saved = localStorage.getItem('hermes-dashboard-theme')
     return (saved === 'light' || saved === 'dark') ? saved : 'dark'
   })
+  const [viewMode, setViewMode] = useState<'cards' | 'sunburst'>('cards')
 
   useEffect(() => { savePinned(pinned) }, [pinned])
   useEffect(() => { localStorage.setItem('hermes-dashboard-theme', theme) }, [theme])
@@ -108,6 +109,8 @@ export default function App() {
       onTogglePin={togglePin}
       theme={theme}
       onToggleTheme={toggleTheme}
+      viewMode={viewMode}
+      onToggleView={() => setViewMode(v => v === 'cards' ? 'sunburst' : 'cards')}
     />
     </div>
   )
