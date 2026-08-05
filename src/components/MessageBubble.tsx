@@ -23,33 +23,36 @@ export function MessageBubble({ message }: Props) {
 
   return (
     <div className={`msg-enter flex ${isUser ? 'justify-end' : 'justify-start'} mb-2`}>
-      <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-        isUser
-          ? 'bg-accent-cyan/10 border border-accent-cyan/15 text-white/85'
-          : 'bg-surface-card/80 border border-surface-border text-white/75'
-      }`}>
+      <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm"
+        style={isUser ? {
+          backgroundColor: 'rgba(34,211,238,0.08)',
+          border: '1px solid rgba(34,211,238,0.15)',
+          color: 'var(--text)',
+        } : {
+          backgroundColor: 'var(--card-bg)',
+          border: '1px solid var(--card-border)',
+          color: 'var(--text)',
+        }}>
         <div className="whitespace-pre-wrap break-words leading-relaxed">
           {decodeContent(displayText)}
         </div>
         {isLong && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-[11px] text-accent-cyan/50 hover:text-accent-cyan/70 mt-1 transition-colors"
+            className="text-[11px] mt-1 transition-colors"
+            style={{ color: '#22d3ee', opacity: 0.6 }}
           >
             {expanded ? 'Show less' : `Show more (${Math.round((content.length - COLLAPSE_LENGTH) / 1000)}K more)`}
           </button>
         )}
         <div className="flex items-center justify-between mt-1">
           {message.timestamp && (
-            <div className={`text-[10px] ${isUser ? 'text-accent-cyan/30' : 'text-white/20'}`}>
+            <div className="text-[10px]" style={{ color: isUser ? 'rgba(34,211,238,0.4)' : 'var(--text-subtle)' }}>
               {formatTime(message.timestamp)}
             </div>
           )}
           {platformColor && (
-            <span
-              className="text-[8px] px-1 rounded font-medium ml-auto"
-              style={{ color: platformColor.dot, opacity: 0.5 }}
-            >
+            <span className="text-[8px] px-1 rounded font-medium ml-auto" style={{ color: platformColor.dot, opacity: 0.5 }}>
               {platformColor.label}
             </span>
           )}
