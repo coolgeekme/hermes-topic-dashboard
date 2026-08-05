@@ -165,10 +165,9 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {topics.map((topic) => {
-                const platLabel = topic.platforms?.includes('claude-code') ? 'CLAUDE'
-                  : topic.is_cron ? 'SYSTEM' : 'HERMES'
-                const platDot = topic.platforms?.includes('claude-code') ? '#D4A373'
-                  : topic.is_cron ? '#8e9192' : '#3e90ff'
+                const platDot = PLATFORM_COLORS[topic.platforms?.[0]]?.dot || '#8e9192'
+                const platLabel = PLATFORM_COLORS[topic.platforms?.[0]]?.label
+                  || (topic.platforms?.includes('claude-code') ? 'CLAUDE' : 'HERMES')
                 const isPinned = pinned.has(topic.id)
 
                 return (

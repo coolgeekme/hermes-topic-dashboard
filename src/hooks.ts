@@ -44,7 +44,9 @@ export function useTopicsData() {
 export const PLATFORM_COLORS: Record<string, { dot: string; bg: string; label: string }> = {
   'hermes': { dot: '#22d3ee', bg: 'rgba(34,211,238,0.1)', label: 'Hermes' },
   'claude-code': { dot: '#a855f7', bg: 'rgba(168,85,247,0.1)', label: 'Claude' },
-  'codex': { dot: '#34d399', bg: 'rgba(52,211,153,0.1)', label: 'Codex' },
+  'chatgpt-web': { dot: '#34d399', bg: 'rgba(52,211,153,0.1)', label: 'ChatGPT' },
+  'claude-web': { dot: '#D4A373', bg: 'rgba(212,163,115,0.1)', label: 'Claude.ai' },
+  'codex': { dot: '#38bdf8', bg: 'rgba(56,189,248,0.1)', label: 'Codex' },
 }
 
 export const ACCENT_COLORS = [

@@ -382,11 +382,42 @@ def main():
     print(f"Claude VPS: {len(vps)} sessions")
     print(f"Claude Local: {len(local)} sessions")
     
+    # Load ChatGPT and Claude web sessions
+    web_sessions = []
+    for name, path in [
+        ('chatgpt-web', os.path.join(os.getcwd(), 'public', 'chatgpt-web_sessions.json')),
+        ('claude-web', os.path.join(os.getcwd(), 'public', 'claude-web_sessions.json')),
+    ]:
+        if os.path.exists(path):
+            web = load_sessions(path, name)
+            print(f"  {name}: {len(web)} sessions")
+            web_sessions.extend(web)
+    
     topics = merge_all(hermes, vps, local)
+    
+    # Convert web sessions to topics (one topic per session)
+    for s in web_sessions:
+        topics.append({
+            'id': f"web-{s.get('id', '')}",
+            'name': s.get('title', 'Untitled')[:100],
+            'platforms': [s.get('platform', 'chatgpt-web')],
+            'session_count': 1,
+            'message_count': s.get('message_count', 0),
+            'message_count_exported': len(s.get('messages', [])),
+            'last_active': (lambda ts: datetime.fromisoformat(str(ts).replace('Z','+00:00')).timestamp() if ts else 0)(s.get('last_active') or s.get('started_at')),
+            'messages': s.get('messages', []),
+            'is_cron': False,
+        })
+    
+    # Collect all platforms
+    all_platforms = set()
+    for t in topics:
+        for p in (t.get('platforms') or []):
+            all_platforms.add(p)
     
     output = {
         'generated_at': datetime.now(timezone.utc).isoformat(),
-        'platforms': ['hermes', 'claude-code'],
+        'platforms': sorted(all_platforms),
         'total_sessions': sum(t['session_count'] for t in topics),
         'total_messages_approx': sum(t['message_count_exported'] for t in topics),
         'topics': topics,
