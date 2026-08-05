@@ -8,6 +8,7 @@ into the unified topics.json without needing access to state.db.
 
 import json
 import os
+import urllib.request
 import re
 import sys
 import base64
@@ -382,14 +383,18 @@ def main():
     print(f"Claude VPS: {len(vps)} sessions")
     print(f"Claude Local: {len(local)} sessions")
     
-    # Load ChatGPT and Claude web sessions
+    # Load ChatGPT and Claude web sessions (download from GitHub if not local)
     web_sessions = []
-    for name, path in [
-        ('chatgpt-web', os.path.join(os.getcwd(), 'public', 'chatgpt-web_sessions.json')),
-        ('claude-web', os.path.join(os.getcwd(), 'public', 'claude-web_sessions.json')),
-    ]:
-        if os.path.exists(path):
-            web = load_sessions(path, name)
+    cwd = os.getcwd()
+    for name, gh_name in [('chatgpt-web', 'chatgpt-web_sessions.json'), ('claude-web', 'claude-web_sessions.json')]:
+        local_path = os.path.join(cwd, 'public', gh_name)
+        if not os.path.exists(local_path):
+            try:
+                url = f"https://raw.githubusercontent.com/coolgeekme/hermes-topic-dashboard/main/public/{gh_name}"
+                urllib.request.urlretrieve(url, local_path)
+            except: pass
+        if os.path.exists(local_path):
+            web = load_sessions(local_path, name)
             print(f"  {name}: {len(web)} sessions")
             web_sessions.extend(web)
     
