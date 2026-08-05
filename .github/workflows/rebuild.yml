@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'data/**'
       - 'public/claude_local_sessions.tar.gz'
       - 'public/claude_local_sessions.json'
   workflow_dispatch:  # manual trigger
