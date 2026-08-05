@@ -130,7 +130,11 @@ export default function App() {
       platformFilter={platformFilter}
       onPlatformFilterChange={setPlatformFilter}
       activeNav={activeNav}
-      onNavChange={setActiveNav}
+      onNavChange={(key: string) => {
+        if (key === 'analytics') { setPage('analytics'); setActiveNav('analytics') }
+        else if (key === 'topics') { setPage('topics'); setActiveNav('topics') }
+        else { setActiveNav(key); if (page !== 'topics') setPage('topics') }
+      }}
       navItems={NAV_ITEMS}
       pinned={pinned}
       onTogglePin={togglePin}
