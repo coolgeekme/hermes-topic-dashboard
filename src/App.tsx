@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react'
 import { useTopicsData } from './hooks'
 import { TopicList } from './components/TopicList'
 import { TopicView } from './components/TopicView'
+import { Analytics } from './components/Analytics'
+import { Sidebar } from './components/Sidebar'
 import type { Topic } from './types'
 
 const PINNED_KEY = 'hermes-dashboard-pinned'
@@ -21,7 +23,7 @@ export default function App() {
   const { data, loading, error, refreshing, refresh } = useTopicsData()
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null)
   const [search, setSearch] = useState('')
-  const [activeNav, setActiveNav] = useState('pinned')
+  const [activeNav, setActiveNav] = useState('all')
   const [platformFilter, setPlatformFilter] = useState<string>('all')
   const [pinned, setPinned] = useState<Set<string>>(loadPinned)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -29,6 +31,7 @@ export default function App() {
     return (saved === 'light' || saved === 'dark') ? saved : 'dark'
   })
   const [viewMode, setViewMode] = useState<'cards' | 'sunburst' | 'mindmap'>('cards')
+  const [page, setPage] = useState<'topics' | 'analytics'>('topics')
 
   useEffect(() => { savePinned(pinned) }, [pinned])
   useEffect(() => { localStorage.setItem('hermes-dashboard-theme', theme) }, [theme])
@@ -44,6 +47,9 @@ export default function App() {
   }
 
   const NAV_ITEMS = [
+    { key: 'topics', label: 'Topics', icon: 'forum', test: () => true },
+    { key: 'analytics', label: 'Analytics', icon: 'bar_chart', test: () => true },
+    null, // divider
     { key: 'pinned', label: 'Pinned', icon: 'push_pin', test: (t: Topic) => pinned.has(t.id) },
     { key: 'recent', label: 'Recent', icon: 'history', test: (t: Topic) => (Date.now() / 1000 - t.last_active) < 7 * 86400 },
     { key: 'all', label: 'All', icon: 'select_all', test: () => true },
@@ -56,8 +62,8 @@ export default function App() {
   const filteredTopics = useMemo(() => {
     if (!data) return []
     let topics = data.topics
-    const nav = NAV_ITEMS.find(n => n.key === activeNav)
-    if (nav) topics = topics.filter(nav.test)
+    const nav = NAV_ITEMS.find(n => n && n.key === activeNav)
+    if (nav && nav.key !== 'all' && nav.key !== 'topics' && nav.key !== 'analytics') topics = topics.filter(nav.test)
     if (platformFilter !== 'all') topics = topics.filter((t) => t.platforms?.includes(platformFilter))
     if (search.trim()) {
       const q = search.toLowerCase()
@@ -87,6 +93,27 @@ export default function App() {
 
   if (selectedTopic) {
     return <TopicView topic={selectedTopic} onBack={() => setSelectedTopic(null)} />
+  }
+
+  if (page === 'analytics' && data) {
+    return (
+      <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg-deep)' }}>
+        <Sidebar
+          activeNav={activeNav}
+          onNavChange={(key: string) => {
+            setActiveNav(key)
+            if (key === 'topics') setPage('topics')
+            if (key === 'analytics') setPage('analytics')
+          }}
+          navItems={NAV_ITEMS}
+          allTopics={data.topics}
+          pinned={pinned}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
+        <Analytics topics={data.topics} onSelectTopic={setSelectedTopic} />
+      </div>
+    )
   }
 
   return (

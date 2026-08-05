@@ -2,6 +2,7 @@ import { PLATFORM_COLORS } from '../hooks'
 import type { Topic } from '../types'
 import { Sunburst } from './Sunburst'
 import { Mindmap } from './Mindmap'
+import { Sidebar } from './Sidebar'
 
 interface NavItem { key: string; label: string; icon: string; test: (t: Topic) => boolean }
 
@@ -18,7 +19,7 @@ interface Props {
   onPlatformFilterChange?: (p: string) => void
   activeNav: string
   onNavChange: (k: string) => void
-  navItems: NavItem[]
+  navItems: (NavItem | null)[]
   pinned: Set<string>
   onTogglePin: (id: string) => void
   theme: 'dark' | 'light'
@@ -48,49 +49,15 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
   return (
     <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg)' }}>
       {/* Sidebar */}
-      <nav className="w-64 flex-shrink-0 flex flex-col px-10 py-8" style={{ backgroundColor: 'var(--bg-nav)', borderRight: '1px solid var(--border)' }}>
-        <div className="mb-12">
-          <h1 className="text-[20px] font-medium tracking-tight" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text)' }}>Conversations</h1>
-          <p className="text-[11px] mt-1" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-muted)' }}>AI Workspace</p>
-        </div>
-
-        <div className="flex-1 overflow-y-auto space-y-1">
-          {navItems.map((item) => {
-            const active = activeNav === item.key
-            const count = item.key === 'all' ? allTopics.length
-              : item.key === 'pinned' ? pinned.size
-              : allTopics.filter(item.test).length
-            return (
-              <button
-                key={item.key}
-                onClick={() => onNavChange(item.key)}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[13px] transition-colors text-left"
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  color: active ? 'var(--sidebar-active-text)' : 'var(--sidebar-text)',
-                  backgroundColor: active ? 'var(--sidebar-active-bg)' : 'transparent',
-                  fontWeight: active ? 700 : 400,
-                }}
-              >
-                <span className="text-[16px] w-5 text-center opacity-60">{Icons[item.icon] || '○'}</span>
-                <span className="flex-1">{item.label}</span>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Theme toggle */}
-        <div className="mt-auto pt-6" style={{ borderTop: `1px solid var(--divider)` }}>
-          <button
-            onClick={onToggleTheme}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[13px] transition-colors text-left hover:opacity-80"
-            style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--sidebar-text)' }}
-          >
-            <span className="text-[16px] w-5 text-center">{theme === 'dark' ? '☀' : '🌙'}</span>
-            <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
-          </button>
-        </div>
-      </nav>
+      <Sidebar
+        activeNav={activeNav}
+        onNavChange={onNavChange}
+        navItems={navItems}
+        allTopics={allTopics}
+        pinned={pinned}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+      />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
