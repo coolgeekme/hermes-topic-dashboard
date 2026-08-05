@@ -1,37 +1,62 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTopicsData } from './hooks'
 import { TopicList } from './components/TopicList'
 import { TopicView } from './components/TopicView'
 import type { Topic } from './types'
 
-const NAV_ITEMS = [
-  { key: 'all', label: 'All', icon: 'select_all', test: () => true },
-  { key: 'recent', label: 'Recent', icon: 'history', test: (t: Topic) => (Date.now() / 1000 - t.last_active) < 7 * 86400 },
-  { key: 'social', label: 'Social', icon: 'group', test: (t: Topic) => /instagram|linkedin|social.media|content|post/i.test(t.name) },
-  { key: 'dev', label: 'Dev', icon: 'code', test: (t: Topic) => /github|repo|code|build|app\b|mobile|api|deploy|website/i.test(t.name) },
-  { key: 'ai', label: 'AI', icon: 'smart_toy', test: (t: Topic) => /ollama|llm|model|ai\b|agent|hermes|claude|codex|pricing/i.test(t.name) },
-  { key: 'personal', label: 'Personal', icon: 'person', test: (t: Topic) => /email|gmail|calendar|room|clean|buy|purchase|weekend|soccer|kevin|best buy/i.test(t.name) },
-]
+const PINNED_KEY = 'hermes-dashboard-pinned'
+
+function loadPinned(): Set<string> {
+  try {
+    const raw = localStorage.getItem(PINNED_KEY)
+    return raw ? new Set(JSON.parse(raw)) : new Set()
+  } catch { return new Set() }
+}
+
+function savePinned(pinned: Set<string>) {
+  localStorage.setItem(PINNED_KEY, JSON.stringify([...pinned]))
+}
 
 export default function App() {
   const { data, loading, error, refreshing, refresh } = useTopicsData()
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null)
   const [search, setSearch] = useState('')
-  const [activeNav, setActiveNav] = useState('all')
+  const [activeNav, setActiveNav] = useState('pinned')
   const [platformFilter, setPlatformFilter] = useState<string>('all')
+  const [pinned, setPinned] = useState<Set<string>>(loadPinned)
+
+  useEffect(() => { savePinned(pinned) }, [pinned])
+
+  const togglePin = (id: string) => {
+    setPinned(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const NAV_ITEMS = [
+    { key: 'pinned', label: 'Pinned', icon: 'push_pin', test: (t: Topic) => pinned.has(t.id) },
+    { key: 'recent', label: 'Recent', icon: 'history', test: (t: Topic) => (Date.now() / 1000 - t.last_active) < 7 * 86400 },
+    { key: 'all', label: 'All', icon: 'select_all', test: () => true },
+    { key: 'social', label: 'Social', icon: 'group', test: (t: Topic) => /instagram|linkedin|social.media|content|post/i.test(t.name) },
+    { key: 'dev', label: 'Dev', icon: 'code', test: (t: Topic) => /github|repo|code|build|app\b|mobile|api|deploy|website/i.test(t.name) },
+    { key: 'ai', label: 'AI', icon: 'smart_toy', test: (t: Topic) => /ollama|llm|model|ai\b|agent|hermes|claude|codex|pricing/i.test(t.name) },
+    { key: 'personal', label: 'Personal', icon: 'person', test: (t: Topic) => /email|gmail|calendar|room|clean|buy|purchase|weekend|soccer|kevin|best buy/i.test(t.name) },
+  ]
 
   const filteredTopics = useMemo(() => {
     if (!data) return []
     let topics = data.topics
     const nav = NAV_ITEMS.find(n => n.key === activeNav)
-    if (nav && nav.key !== 'all') topics = topics.filter(nav.test)
+    if (nav) topics = topics.filter(nav.test)
     if (platformFilter !== 'all') topics = topics.filter((t) => t.platforms?.includes(platformFilter))
     if (search.trim()) {
       const q = search.toLowerCase()
       topics = topics.filter((t) => t.name.toLowerCase().includes(q))
     }
     return topics
-  }, [data, activeNav, platformFilter, search])
+  }, [data, activeNav, platformFilter, search, pinned])
 
   if (loading) {
     return (
@@ -71,6 +96,8 @@ export default function App() {
       activeNav={activeNav}
       onNavChange={setActiveNav}
       navItems={NAV_ITEMS}
+      pinned={pinned}
+      onTogglePin={togglePin}
     />
   )
 }

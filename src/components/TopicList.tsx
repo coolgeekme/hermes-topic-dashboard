@@ -17,6 +17,8 @@ interface Props {
   activeNav: string
   onNavChange: (k: string) => void
   navItems: NavItem[]
+  pinned: Set<string>
+  onTogglePin: (id: string) => void
 }
 
 function timeAgo(ts: number): string {
@@ -31,15 +33,12 @@ function timeAgo(ts: number): string {
   return new Date(ts * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-const materialIcon = (name: string) => {
-  const icons: Record<string, string> = {
-    select_all: '☰', history: '◷', group: '👥', code: '</>', smart_toy: '◆', person: '●',
-    search: '⌕', refresh: '↻', settings: '⚙',
-  }
-  return icons[name] || '○'
+const Icons: Record<string, string> = {
+  select_all: '☰', history: '◷', group: '👥', code: '</>', smart_toy: '◆', person: '●',
+  search: '⌕', refresh: '↻', push_pin: '📌',
 }
 
-export function TopicList({ topics, allTopics, search, onSearchChange, onSelectTopic, refreshing, onRefresh, platforms, platformFilter, onPlatformFilterChange, activeNav, onNavChange, navItems }: Props) {
+export function TopicList({ topics, allTopics, search, onSearchChange, onSelectTopic, refreshing, onRefresh, platforms, platformFilter, onPlatformFilterChange, activeNav, onNavChange, navItems, pinned, onTogglePin }: Props) {
   return (
     <div className="flex h-screen bg-[#131315] overflow-hidden">
       {/* Sidebar */}
@@ -52,7 +51,9 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
         <div className="flex-1 overflow-y-auto space-y-1">
           {navItems.map((item) => {
             const active = activeNav === item.key
-            const count = item.key === 'all' ? allTopics.length : allTopics.filter(item.test).length
+            const count = item.key === 'all' ? allTopics.length
+              : item.key === 'pinned' ? pinned.size
+              : allTopics.filter(item.test).length
             return (
               <button
                 key={item.key}
@@ -65,8 +66,11 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
                   fontWeight: active ? 700 : 400,
                 }}
               >
-                <span className="text-[16px] w-5 text-center opacity-60">{materialIcon(item.icon)}</span>
+                <span className="text-[16px] w-5 text-center opacity-60">{Icons[item.icon] || '○'}</span>
                 <span className="flex-1">{item.label}</span>
+                {count > 0 && (
+                  <span style={{ color: active ? 'rgba(228,226,228,0.3)' : 'rgba(142,145,146,0.3)', fontSize: '10px' }}>{count}</span>
+                )}
               </button>
             )
           })}
@@ -79,7 +83,7 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
         <header className="flex-shrink-0 sticky top-0 bg-[#131315]/95 backdrop-blur-sm z-40 flex items-center justify-between px-10 py-6">
           <div className="flex-1 max-w-2xl">
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8e9192] text-[16px]">{materialIcon('search')}</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8e9192] text-[16px]">{Icons.search}</span>
               <input
                 type="text"
                 value={search}
@@ -93,7 +97,7 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
 
           <div className="flex items-center gap-4 ml-8">
             <button onClick={onRefresh} disabled={refreshing} className="p-2 rounded-full hover:bg-[#2a2a2c] transition-colors text-[#c4c7c8]">
-              <span className={`text-[20px] ${refreshing ? 'animate-spin inline-block' : ''}`}>{materialIcon('refresh')}</span>
+              <span className={`text-[20px] ${refreshing ? 'animate-spin inline-block' : ''}`}>{Icons.refresh}</span>
             </button>
           </div>
         </header>
@@ -130,7 +134,9 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
         <div className="flex-1 overflow-y-auto px-10 pb-12">
           {topics.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-[#8e9192] text-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>No conversations found</p>
+              <p className="text-[#8e9192] text-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                {activeNav === 'pinned' ? 'No pinned conversations' : 'No conversations found'}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -139,19 +145,30 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
                   : topic.is_cron ? 'SYSTEM' : 'HERMES'
                 const platDot = topic.platforms?.includes('claude-code') ? '#D4A373'
                   : topic.is_cron ? '#8e9192' : '#3e90ff'
+                const isPinned = pinned.has(topic.id)
 
                 return (
                   <button
                     key={topic.id}
                     onClick={() => onSelectTopic(topic)}
-                    className="bg-[#1b1b1d] border border-[#444748]/40 rounded-xl p-5 hover:border-[#444748]/80 hover:bg-[#2a2a2c] transition-all duration-300 group cursor-pointer flex flex-col h-[140px] text-left shadow-[0_4px_32px_rgba(0,0,0,0.15)]"
+                    className="bg-[#1b1b1d] border border-[#444748]/40 rounded-xl p-5 hover:border-[#444748]/80 hover:bg-[#2a2a2c] transition-all duration-300 group cursor-pointer flex flex-col h-[140px] text-left shadow-[0_4px_32px_rgba(0,0,0,0.15)] relative"
                   >
+                    {/* Pin button */}
+                    <span
+                      onClick={(e) => { e.stopPropagation(); onTogglePin(topic.id) }}
+                      className="absolute top-3 right-3 p-1 rounded-md hover:bg-[#353437] transition-colors z-10"
+                      title={isPinned ? 'Unpin' : 'Pin'}
+                      style={{ fontSize: '14px', opacity: isPinned ? 0.8 : 0, filter: isPinned ? 'none' : 'grayscale(1)' }}
+                      onMouseEnter={(e) => { (e.target as HTMLElement).style.opacity = '0.8'; (e.target as HTMLElement).style.filter = 'none' }}
+                      onMouseLeave={(e) => { if (!isPinned) { (e.target as HTMLElement).style.opacity = '0'; (e.target as HTMLElement).style.filter = 'grayscale(1)' } }}
+                    >📌</span>
+
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: platDot }} />
                         <span className="text-[11px] uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace", color: '#8e9192' }}>{platLabel}</span>
                       </div>
-                      <span className="text-[11px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'rgba(142,145,146,0.6)' }}>{timeAgo(topic.last_active)}</span>
+                      <span className="text-[11px] mr-6" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'rgba(142,145,146,0.6)' }}>{timeAgo(topic.last_active)}</span>
                     </div>
                     <h3 className="text-[15px] font-medium text-[#e4e2e4] group-hover:text-white transition-colors line-clamp-2 leading-snug" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
                       {topic.name}
