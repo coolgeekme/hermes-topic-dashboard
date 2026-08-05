@@ -19,6 +19,8 @@ interface Props {
   navItems: NavItem[]
   pinned: Set<string>
   onTogglePin: (id: string) => void
+  theme: 'dark' | 'light'
+  onToggleTheme: () => void
 }
 
 function timeAgo(ts: number): string {
@@ -38,14 +40,14 @@ const Icons: Record<string, string> = {
   search: '⌕', refresh: '↻', push_pin: '📌',
 }
 
-export function TopicList({ topics, allTopics, search, onSearchChange, onSelectTopic, refreshing, onRefresh, platforms, platformFilter, onPlatformFilterChange, activeNav, onNavChange, navItems, pinned, onTogglePin }: Props) {
+export function TopicList({ topics, allTopics, search, onSearchChange, onSelectTopic, refreshing, onRefresh, platforms, platformFilter, onPlatformFilterChange, activeNav, onNavChange, navItems, pinned, onTogglePin, theme, onToggleTheme }: Props) {
   return (
-    <div className="flex h-screen bg-[#131315] overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg)' }}>
       {/* Sidebar */}
-      <nav className="w-64 flex-shrink-0 flex flex-col border-r border-[#444748] bg-[#131315] px-10 py-8">
+      <nav className="w-64 flex-shrink-0 flex flex-col px-10 py-8" style={{ backgroundColor: 'var(--bg-nav)', borderRight: '1px solid var(--border)' }}>
         <div className="mb-12">
-          <h1 className="text-[20px] font-medium text-[#e4e2e4] tracking-tight" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Conversations</h1>
-          <p className="text-[11px] text-[#8e9192] mt-1" style={{ fontFamily: "'JetBrains Mono', monospace" }}>AI Workspace</p>
+          <h1 className="text-[20px] font-medium tracking-tight" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text)' }}>Conversations</h1>
+          <p className="text-[11px] mt-1" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-muted)' }}>AI Workspace</p>
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-1">
@@ -58,45 +60,59 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
               <button
                 key={item.key}
                 onClick={() => onNavChange(item.key)}
-                className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[13px] transition-colors text-left`}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[13px] transition-colors text-left"
                 style={{
                   fontFamily: "'JetBrains Mono', monospace",
-                  color: active ? '#ffffff' : '#c4c7c8',
-                  backgroundColor: active ? '#1b1b1d' : 'transparent',
+                  color: active ? 'var(--sidebar-active-text)' : 'var(--sidebar-text)',
+                  backgroundColor: active ? 'var(--sidebar-active-bg)' : 'transparent',
                   fontWeight: active ? 700 : 400,
                 }}
               >
                 <span className="text-[16px] w-5 text-center opacity-60">{Icons[item.icon] || '○'}</span>
                 <span className="flex-1">{item.label}</span>
-                {count > 0 && (
-                  <span style={{ color: active ? 'rgba(228,226,228,0.3)' : 'rgba(142,145,146,0.3)', fontSize: '10px' }}>{count}</span>
-                )}
               </button>
             )
           })}
+        </div>
+
+        {/* Theme toggle */}
+        <div className="mt-auto pt-6" style={{ borderTop: `1px solid var(--divider)` }}>
+          <button
+            onClick={onToggleTheme}
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[13px] transition-colors text-left hover:opacity-80"
+            style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--sidebar-text)' }}
+          >
+            <span className="text-[16px] w-5 text-center">{theme === 'dark' ? '☀' : '🌙'}</span>
+            <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+          </button>
         </div>
       </nav>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <header className="flex-shrink-0 sticky top-0 bg-[#131315]/95 backdrop-blur-sm z-40 flex items-center justify-between px-10 py-6">
+        <header className="flex-shrink-0 sticky top-0 z-40 flex items-center justify-between px-10 py-6" style={{ backgroundColor: 'var(--topbar-bg)', backdropFilter: 'blur(12px)' }}>
           <div className="flex-1 max-w-2xl">
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8e9192] text-[16px]">{Icons.search}</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[16px]" style={{ color: 'var(--text-muted)' }}>{Icons.search}</span>
               <input
                 type="text"
                 value={search}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Search conversations..."
-                className="w-full bg-[#1f1f21] border border-[#444748]/50 rounded-full py-2.5 pl-12 pr-4 text-[15px] text-[#e4e2e4] placeholder-[#8e9192]/70 outline-none focus:border-[#8e9192] transition-colors"
-                style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}
+                className="w-full rounded-full py-2.5 pl-12 pr-4 text-[15px] outline-none transition-colors"
+                style={{
+                  fontFamily: "'Hanken Grotesk', sans-serif",
+                  backgroundColor: 'var(--input-bg)',
+                  border: `1px solid var(--input-border)`,
+                  color: 'var(--text)',
+                }}
               />
             </div>
           </div>
 
           <div className="flex items-center gap-4 ml-8">
-            <button onClick={onRefresh} disabled={refreshing} className="p-2 rounded-full hover:bg-[#2a2a2c] transition-colors text-[#c4c7c8]">
+            <button onClick={onRefresh} disabled={refreshing} className="p-2 rounded-full transition-colors" style={{ color: 'var(--sidebar-text)' }}>
               <span className={`text-[20px] ${refreshing ? 'animate-spin inline-block' : ''}`}>{Icons.refresh}</span>
             </button>
           </div>
@@ -106,12 +122,12 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
         {platforms && platforms.length > 1 && (
           <div className="flex-shrink-0 px-10 pb-4 flex items-center gap-2 overflow-x-auto no-scrollbar">
             <button onClick={() => onPlatformFilterChange?.('all')}
-              className={`rounded-full text-[11px] px-4 py-1.5 border transition-colors whitespace-nowrap`}
+              className="rounded-full text-[11px] px-4 py-1.5 border transition-colors whitespace-nowrap"
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                backgroundColor: platformFilter === 'all' ? '#1f1f21' : 'transparent',
-                color: platformFilter === 'all' ? '#e4e2e4' : '#8e9192',
-                borderColor: platformFilter === 'all' ? '#444748' : 'transparent',
+                backgroundColor: platformFilter === 'all' ? 'var(--filter-bg)' : 'transparent',
+                color: platformFilter === 'all' ? 'var(--filter-active-text)' : 'var(--filter-text)',
+                borderColor: platformFilter === 'all' ? 'var(--filter-active-border)' : 'transparent',
               }}>All</button>
             {platforms.map((p) => {
               const pc = PLATFORM_COLORS[p]; if (!pc) return null
@@ -122,7 +138,7 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
                   style={{
                     fontFamily: "'JetBrains Mono', monospace",
                     backgroundColor: active ? pc.bg : 'transparent',
-                    color: active ? pc.dot : '#8e9192',
+                    color: active ? pc.dot : 'var(--filter-text)',
                     borderColor: active ? `${pc.dot}40` : 'transparent',
                   }}>{pc.label}</button>
               )
@@ -134,7 +150,7 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
         <div className="flex-1 overflow-y-auto px-10 pb-12">
           {topics.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-[#8e9192] text-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+              <p className="text-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text-muted)' }}>
                 {activeNav === 'pinned' ? 'No pinned conversations' : 'No conversations found'}
               </p>
             </div>
@@ -151,29 +167,44 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
                   <button
                     key={topic.id}
                     onClick={() => onSelectTopic(topic)}
-                    className="bg-[#1b1b1d] border border-[#444748]/40 rounded-xl p-5 hover:border-[#444748]/80 hover:bg-[#2a2a2c] transition-all duration-300 group cursor-pointer flex flex-col h-[140px] text-left shadow-[0_4px_32px_rgba(0,0,0,0.15)] relative"
+                    className="glass rounded-xl p-5 group cursor-pointer flex flex-col h-[140px] text-left relative"
                   >
                     {/* Pin button */}
                     <span
                       onClick={(e) => { e.stopPropagation(); onTogglePin(topic.id) }}
-                      className="absolute top-3 right-3 p-1 rounded-md hover:bg-[#353437] transition-colors z-10"
+                      className="absolute top-3 right-3 p-1 rounded-md transition-colors z-10"
+                      style={{
+                        fontSize: '14px',
+                        opacity: isPinned ? 0.8 : 0,
+                        filter: isPinned ? 'none' : 'grayscale(1)',
+                        backgroundColor: 'transparent',
+                      }}
                       title={isPinned ? 'Unpin' : 'Pin'}
-                      style={{ fontSize: '14px', opacity: isPinned ? 0.8 : 0, filter: isPinned ? 'none' : 'grayscale(1)' }}
-                      onMouseEnter={(e) => { (e.target as HTMLElement).style.opacity = '0.8'; (e.target as HTMLElement).style.filter = 'none' }}
-                      onMouseLeave={(e) => { if (!isPinned) { (e.target as HTMLElement).style.opacity = '0'; (e.target as HTMLElement).style.filter = 'grayscale(1)' } }}
+                      onMouseEnter={(e) => {
+                        const t = e.target as HTMLElement
+                        t.style.opacity = '0.8'; t.style.filter = 'none'
+                        t.style.backgroundColor = 'var(--hover-bg)'
+                      }}
+                      onMouseLeave={(e) => {
+                        const t = e.target as HTMLElement
+                        if (!isPinned) {
+                          t.style.opacity = '0'; t.style.filter = 'grayscale(1)'
+                        }
+                        t.style.backgroundColor = 'transparent'
+                      }}
                     >📌</span>
 
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: platDot }} />
-                        <span className="text-[11px] uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace", color: '#8e9192' }}>{platLabel}</span>
+                        <span className="text-[11px] uppercase tracking-wider" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-muted)' }}>{platLabel}</span>
                       </div>
-                      <span className="text-[11px] mr-6" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'rgba(142,145,146,0.6)' }}>{timeAgo(topic.last_active)}</span>
+                      <span className="text-[11px] mr-6" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-subtle)' }}>{timeAgo(topic.last_active)}</span>
                     </div>
-                    <h3 className="text-[15px] font-medium text-[#e4e2e4] group-hover:text-white transition-colors line-clamp-2 leading-snug" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                    <h3 className="text-[15px] font-medium group-hover:opacity-90 transition-opacity line-clamp-2 leading-snug" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text)' }}>
                       {topic.name}
                     </h3>
-                    <div className="mt-auto flex items-center gap-3" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: 'rgba(142,145,146,0.5)' }}>
+                    <div className="mt-auto flex items-center gap-3" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: 'var(--text-stat)' }}>
                       <span>{topic.session_count}s</span>
                       <span>·</span>
                       <span>{topic.message_count_exported}m</span>

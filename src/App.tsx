@@ -24,8 +24,15 @@ export default function App() {
   const [activeNav, setActiveNav] = useState('pinned')
   const [platformFilter, setPlatformFilter] = useState<string>('all')
   const [pinned, setPinned] = useState<Set<string>>(loadPinned)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('hermes-dashboard-theme')
+    return (saved === 'light' || saved === 'dark') ? saved : 'dark'
+  })
 
   useEffect(() => { savePinned(pinned) }, [pinned])
+  useEffect(() => { localStorage.setItem('hermes-dashboard-theme', theme) }, [theme])
+
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark')
 
   const togglePin = (id: string) => {
     setPinned(prev => {
@@ -82,6 +89,7 @@ export default function App() {
   }
 
   return (
+    <div className={theme === 'light' ? 'light' : ''}>
     <TopicList
       topics={filteredTopics}
       allTopics={data!.topics}
@@ -98,6 +106,9 @@ export default function App() {
       navItems={NAV_ITEMS}
       pinned={pinned}
       onTogglePin={togglePin}
+      theme={theme}
+      onToggleTheme={toggleTheme}
     />
+    </div>
   )
 }
