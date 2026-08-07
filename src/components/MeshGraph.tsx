@@ -12,167 +12,176 @@ function extractKeywords(name: string): string[] {
   return [...new Set(name.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w => w.length>=4&&!stop.has(w)).slice(0,5))]
 }
 
+const PLATFORM_HEX: Record<string, string> = {
+  'hermes': '#7c3aed',
+  'claude-code': '#00a572', 
+  'chatgpt-web': '#0062d2',
+  'claude-web': '#00a572',
+}
+
 export function MeshGraph({ topics, onSelectTopic }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const labelsRef = useRef<HTMLDivElement>(null)
-  const [hoveredLabel, setHoveredLabel] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null)
 
   const init = useCallback(async () => {
     const canvas = canvasRef.current
-    const labels = labelsRef.current
-    if (!canvas || !labels || topics.length === 0) return
+    const container = containerRef.current
+    if (!canvas || !container || topics.length === 0) return
 
     const THREE = await import('three')
-    const w = canvas.clientWidth
-    const h = canvas.clientHeight || 500
+    const w = container.clientWidth
+    const h = 500
 
-    // Scene
     const scene = new THREE.Scene()
-    
-    // Camera
-    const camera = new THREE.PerspectiveCamera(50, w / h, 0.5, 200)
-    camera.position.set(0, 5, 60)
+    const camera = new THREE.PerspectiveCamera(45, w / h, 0.5, 200)
+    camera.position.set(0, 8, 55)
     camera.lookAt(0, 0, 0)
 
-    // Renderer
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
     renderer.setSize(w, h)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setClearColor(0x000000, 0)
 
     // Lighting
-    scene.add(new THREE.AmbientLight(0x334466, 3))
-    const key = new THREE.DirectionalLight(0xffffff, 2)
-    key.position.set(10, 20, 20)
+    scene.add(new THREE.AmbientLight(0x556688, 2.5))
+    const key = new THREE.DirectionalLight(0xffffff, 2.5)
+    key.position.set(15, 25, 20)
     scene.add(key)
-    const fill = new THREE.DirectionalLight(0x8866cc, 1)
-    fill.position.set(-10, -5, -10)
+    const fill = new THREE.DirectionalLight(0x8866cc, 1.2)
+    fill.position.set(-10, -10, -10)
     scene.add(fill)
+    const rim = new THREE.DirectionalLight(0x4488ff, 1)
+    rim.position.set(0, -15, 0)
+    scene.add(rim)
 
-    // Starfield background
+    // Starfield
     const stars = new THREE.BufferGeometry()
-    const starPos = new Float32Array(800 * 3)
-    for (let i = 0; i < starPos.length; i += 3) {
-      starPos[i] = (Math.random() - 0.5) * 200
-      starPos[i+1] = (Math.random() - 0.5) * 200
-      starPos[i+2] = (Math.random() - 0.5) * 200
+    const sp = new Float32Array(600 * 3)
+    for (let i = 0; i < sp.length; i += 3) {
+      sp[i] = (Math.random()-0.5)*180; sp[i+1] = (Math.random()-0.5)*180; sp[i+2] = (Math.random()-0.5)*180
     }
-    stars.setAttribute('position', new THREE.BufferAttribute(starPos, 3))
-    scene.add(new THREE.Points(stars, new THREE.PointsMaterial({ color: 0x334466, size: 0.3 })))
+    stars.setAttribute('position', new THREE.BufferAttribute(sp, 3))
+    scene.add(new THREE.Points(stars, new THREE.PointsMaterial({ color: 0x334466, size: 0.25 })))
 
     // Build nodes
-    const limit = Math.min(topics.length, 60)
+    const limit = Math.min(topics.length, 80)
     const sliced = topics.slice(0, limit)
     const kwMap = sliced.map(t => extractKeywords(t.name))
 
-    const nodes: any[] = []
-    const nodeMap = new Map<string, any>()
+    // Find min/max message count for sizing
+    const maxMsgs = Math.max(...sliced.map(t => t.message_count_exported), 1)
+    const minMsgs = Math.min(...sliced.map(t => t.message_count_exported), 1)
 
-    // Fibonacci sphere distribution
+    const nodes: any[] = []
+    const nodeData: any[] = []
+    const labelDivs: HTMLDivElement[] = []
+
+    // Fibonacci sphere layout
     const phi = Math.PI * (3 - Math.sqrt(5))
     for (let i = 0; i < sliced.length; i++) {
       const t = sliced[i]
       const y = 1 - (i / (sliced.length - 1)) * 2
       const radius = Math.sqrt(1 - y * y)
       const theta = phi * i
-      const r = 22 + Math.random() * 8
+      const r = 22 + Math.random() * 6
 
       const x = Math.cos(theta) * radius * r
       const z = Math.sin(theta) * radius * r
       const yPos = y * r
 
-      const size = Math.max(0.8, Math.min(4, Math.log(t.message_count_exported + 1) * 0.9))
+      // Size: map message count to 0.8 - 5.0
+      const size = 0.8 + ((t.message_count_exported - minMsgs) / Math.max(maxMsgs - minMsgs, 1)) * 4.2
       const pc = PLATFORM_COLORS[t.platforms?.[0] || '']
-      const color = pc?.dot || '#7c3aed'
+      const colorHex = PLATFORM_HEX[t.platforms?.[0] || ''] || pc?.dot || '#958da1'
 
-      // Sphere with glow
+      // Sphere
       const geom = new THREE.SphereGeometry(size, 48, 48)
       const mat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(color),
-        roughness: 0.3,
-        metalness: 0.1,
-        emissive: new THREE.Color(color),
-        emissiveIntensity: 0.4,
+        color: new THREE.Color(colorHex),
+        roughness: 0.25,
+        metalness: 0.15,
+        emissive: new THREE.Color(colorHex),
+        emissiveIntensity: 0.35,
       })
       const mesh = new THREE.Mesh(geom, mat)
       mesh.position.set(x, yPos, z)
-      mesh.userData = { topic: t, size, color, baseX: x, baseY: yPos, baseZ: z }
-
-      // Outer glow ring
-      const ringGeom = new THREE.RingGeometry(size * 1.3, size * 1.5, 32)
-      const ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(color), side: THREE.DoubleSide, transparent: true, opacity: 0.15 })
-      const ring = new THREE.Mesh(ringGeom, ringMat)
-      ring.position.copy(mesh.position)
-      ring.lookAt(camera.position)
-      ring.userData = { parent: mesh }
-      scene.add(ring)
-
+      mesh.userData = { topic: t, size, color: colorHex, baseX: x, baseY: yPos, baseZ: z }
       scene.add(mesh)
-      nodes.push({ mesh, ring })
-      nodeMap.set(t.id, mesh)
+      nodes.push(mesh)
+
+      // CSS label
+      const label = document.createElement('div')
+      label.className = 'absolute pointer-events-none transition-opacity'
+      label.style.cssText = `
+        font-family: 'Hanken Grotesk', sans-serif;
+        font-size: 10px;
+        font-weight: 600;
+        color: ${colorHex};
+        text-shadow: 0 0 6px rgba(0,0,0,0.8);
+        white-space: nowrap;
+        transform: translate(-50%, -50%);
+      `
+      label.textContent = t.name.slice(0, 18) + (t.name.length > 18 ? '…' : '')
+      container.appendChild(label)
+      labelDivs.push(label)
+      nodeData.push({ mesh, label, topic: t })
     }
 
     // Edges
-    const edgeGroup = new THREE.Group()
     for (let i = 0; i < sliced.length; i++) {
       for (let j = i + 1; j < sliced.length; j++) {
-        const a = new Set(kwMap[i])
-        const b = new Set(kwMap[j])
+        const a = new Set(kwMap[i]), b = new Set(kwMap[j])
         if (a.size === 0 || b.size === 0) continue
         const int = [...a].filter(x => b.has(x)).length
-        const union = a.size + b.size - int
-        const weight = int / union
+        const weight = int / (a.size + b.size - int)
         if (weight >= 0.25) {
-          const from = nodes[i].mesh.position
-          const to = nodes[j].mesh.position
+          const from = nodes[i].position, to = nodes[j].position
           const mid = new THREE.Vector3().addVectors(from, to).multiplyScalar(0.5)
-          const curve = new THREE.QuadraticBezierCurve3(
-            from.clone(),
-            mid.clone().add(new THREE.Vector3((Math.random()-0.5)*5, (Math.random()-0.5)*5, (Math.random()-0.5)*5)),
-            to.clone()
-          )
-          const pts = curve.getPoints(20)
-          const edgeGeom = new THREE.BufferGeometry().setFromPoints(pts)
-          const edgeLine = new THREE.Line(edgeGeom, new THREE.LineBasicMaterial({
-            color: new THREE.Color(nodes[i].mesh.userData.color),
-            transparent: true,
-            opacity: 0.15 + weight * 0.2,
-          }))
-          edgeGroup.add(edgeLine)
+          mid.add(new THREE.Vector3((Math.random()-0.5)*6, (Math.random()-0.5)*6, (Math.random()-0.5)*6))
+          const curve = new THREE.QuadraticBezierCurve3(from.clone(), mid, to.clone())
+          const pts = curve.getPoints(16)
+          const geom = new THREE.BufferGeometry().setFromPoints(pts)
+          scene.add(new THREE.Line(geom, new THREE.LineBasicMaterial({
+            color: new THREE.Color(nodes[i].userData.color),
+            transparent: true, opacity: 0.1 + weight * 0.15,
+          })))
         }
       }
     }
-    scene.add(edgeGroup)
 
     // Mouse state
     let isDragging = false, prevX = 0, prevY = 0
-    let rotH = 0.5, rotV = 0.3
-    let zoom = 60, targetZoom = 60
-    const targetRotH = { val: rotH }
-    const targetRotV = { val: rotV }
+    let targetRotH = 0.5, targetRotV = 0.3, rotH = 0.5, rotV = 0.3
+    let targetZoom = 55, zoom = 55
     const raycaster = new THREE.Raycaster()
     const mouse = new THREE.Vector2()
 
-    // Input
     canvas.addEventListener('mousedown', e => { isDragging = true; prevX = e.clientX; prevY = e.clientY })
     canvas.addEventListener('mousemove', e => {
       if (isDragging) {
-        targetRotH.val += (e.clientX - prevX) * 0.004
-        targetRotV.val += (e.clientY - prevY) * 0.004
-        targetRotV.val = Math.max(-1.5, Math.min(1.5, targetRotV.val))
+        targetRotH += (e.clientX - prevX) * 0.004
+        targetRotV += (e.clientY - prevY) * 0.004
+        targetRotV = Math.max(-1.4, Math.min(1.4, targetRotV))
         prevX = e.clientX; prevY = e.clientY
       }
-      // Hover
+      // Hover detection
       const rect = canvas.getBoundingClientRect()
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
       raycaster.setFromCamera(mouse, camera)
-      const hits = raycaster.intersectObjects(nodes.map(n => n.mesh))
+      const hits = raycaster.intersectObjects(nodes)
       if (hits.length > 0) {
         const topic = hits[0].object.userData?.topic
-        setHoveredLabel(topic?.name?.slice(0, 40) || '')
+        if (topic) {
+          setTooltip({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top - 20,
+            text: `${topic.name.slice(0, 40)}\n${topic.message_count_exported} messages · ${topic.session_count} sessions`,
+          })
+        }
       } else {
-        setHoveredLabel('')
+        setTooltip(null)
       }
     })
     canvas.addEventListener('mouseup', e => {
@@ -181,7 +190,7 @@ export function MeshGraph({ topics, onSelectTopic }: Props) {
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
         mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
         raycaster.setFromCamera(mouse, camera)
-        const hits = raycaster.intersectObjects(nodes.map(n => n.mesh))
+        const hits = raycaster.intersectObjects(nodes)
         if (hits.length > 0) {
           const topic = hits[0].object.userData?.topic
           if (topic) onSelectTopic(topic)
@@ -191,26 +200,13 @@ export function MeshGraph({ topics, onSelectTopic }: Props) {
     })
     canvas.addEventListener('wheel', e => {
       e.preventDefault()
-      targetZoom = Math.max(15, Math.min(120, targetZoom + e.deltaY * 0.05))
+      targetZoom = Math.max(12, Math.min(100, targetZoom + e.deltaY * 0.05))
     }, { passive: false })
-    canvas.addEventListener('touchstart', e => {
-      if (e.touches.length === 1) { isDragging = true; prevX = e.touches[0].clientX; prevY = e.touches[0].clientY }
-    })
-    canvas.addEventListener('touchmove', e => {
-      if (isDragging && e.touches.length === 1) {
-        targetRotH.val += (e.touches[0].clientX - prevX) * 0.004
-        targetRotV.val += (e.touches[0].clientY - prevY) * 0.004
-        targetRotV.val = Math.max(-1.5, Math.min(1.5, targetRotV.val))
-        prevX = e.touches[0].clientX; prevY = e.touches[0].clientY
-      }
-    })
-    canvas.addEventListener('touchend', () => { isDragging = false })
 
-    // Resize
     const onResize = () => {
-      const w2 = canvas.clientWidth, h2 = canvas.clientHeight || 500
-      camera.aspect = w2 / h2; camera.updateProjectionMatrix()
-      renderer.setSize(w2, h2)
+      const w2 = container.clientWidth
+      camera.aspect = w2 / 500; camera.updateProjectionMatrix()
+      renderer.setSize(w2, 500)
     }
     window.addEventListener('resize', onResize)
 
@@ -219,9 +215,9 @@ export function MeshGraph({ topics, onSelectTopic }: Props) {
     const animate = () => {
       frame = requestAnimationFrame(animate)
 
-      rotH += (targetRotH.val - rotH) * 0.08
-      rotV += (targetRotV.val - rotV) * 0.08
-      zoom += (targetZoom - zoom) * 0.08
+      rotH += (targetRotH - rotH) * 0.06
+      rotV += (targetRotV - rotV) * 0.06
+      zoom += (targetZoom - zoom) * 0.06
 
       const camX = zoom * Math.cos(rotV) * Math.sin(rotH)
       const camY = zoom * Math.sin(rotV)
@@ -229,12 +225,16 @@ export function MeshGraph({ topics, onSelectTopic }: Props) {
       camera.position.set(camX, camY, camZ)
       camera.lookAt(0, 0, 0)
 
-      // Pulse rings toward camera
-      for (const n of nodes) {
-        if (n.ring) {
-          n.ring.position.copy(n.mesh.position)
-          n.ring.lookAt(camera.position)
-        }
+      // Update CSS labels
+      const rect = canvas.getBoundingClientRect()
+      for (const nd of nodeData) {
+        const pos = nd.mesh.position.clone().project(camera)
+        const x = (pos.x * 0.5 + 0.5) * rect.width
+        const y = (-pos.y * 0.5 + 0.5) * rect.height
+        nd.label.style.left = x + 'px'
+        nd.label.style.top = y + 'px'
+        // Fade labels behind camera
+        nd.label.style.opacity = pos.z < 1 ? '0.8' : '0'
       }
 
       renderer.render(scene, camera)
@@ -244,8 +244,8 @@ export function MeshGraph({ topics, onSelectTopic }: Props) {
     return () => {
       cancelAnimationFrame(frame)
       window.removeEventListener('resize', onResize)
+      for (const nd of nodeData) nd.label.remove()
       renderer.dispose()
-      scene.clear()
     }
   }, [topics, onSelectTopic])
 
@@ -256,22 +256,23 @@ export function MeshGraph({ topics, onSelectTopic }: Props) {
   }, [init])
 
   return (
-    <div className="relative w-full rounded-xl overflow-hidden cursor-grab active:cursor-grabbing" style={{ height: '500px', backgroundColor: 'var(--bg-deep)' }}>
+    <div ref={containerRef} className="relative w-full rounded-xl overflow-hidden cursor-grab active:cursor-grabbing" style={{ height: '500px', backgroundColor: 'var(--bg-deep)' }}>
       <canvas ref={canvasRef} className="w-full h-full" />
-      <div ref={labelsRef} className="pointer-events-none absolute inset-0">
-        {hoveredLabel && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg border text-[13px] font-medium whitespace-nowrap"
-            style={{
-              backgroundColor: 'var(--card-bg)',
-              borderColor: 'var(--card-border)',
-              color: 'var(--text)',
-              fontFamily: "'Hanken Grotesk', sans-serif",
-              boxShadow: 'var(--shadow-card)',
-            }}>
-            {hoveredLabel}
-          </div>
-        )}
-      </div>
+      {tooltip && (
+        <div className="absolute pointer-events-none px-3 py-2 rounded-lg border text-xs leading-relaxed whitespace-pre"
+          style={{
+            left: tooltip.x, top: tooltip.y,
+            backgroundColor: 'var(--card-bg)',
+            borderColor: 'var(--card-border)',
+            color: 'var(--text)',
+            fontFamily: "'Hanken Grotesk', sans-serif",
+            boxShadow: 'var(--shadow-card)',
+            transform: 'translate(-50%, -100%)',
+            zIndex: 50,
+          }}>
+          {tooltip.text}
+        </div>
+      )}
       {topics.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
           <p style={{ color: 'var(--text-muted)' }}>No topics to visualize</p>
