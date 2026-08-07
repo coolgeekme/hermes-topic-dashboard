@@ -2,6 +2,7 @@ import { PLATFORM_COLORS } from '../hooks'
 import type { Topic } from '../types'
 import { Sunburst } from './Sunburst'
 import { Mindmap } from './Mindmap'
+import { MeshGraph } from './MeshGraph'
 import { Sidebar } from './Sidebar'
 
 interface NavItem { key: string; label: string; icon: string; test: (t: Topic) => boolean }
@@ -24,7 +25,7 @@ interface Props {
   onTogglePin: (id: string) => void
   theme: 'dark' | 'light'
   onToggleTheme: () => void
-  viewMode: 'cards' | 'sunburst' | 'mindmap'
+  viewMode: 'cards' | 'sunburst' | 'mindmap' | 'mesh'
   onToggleView: () => void
 }
 
@@ -134,6 +135,8 @@ export function TopicList({ topics, allTopics, search, onSearchChange, onSelectT
             <Sunburst topics={topics} onSelectTopic={onSelectTopic} />
           ) : viewMode === 'mindmap' ? (
             <Mindmap topics={topics} onSelectTopic={onSelectTopic} />
+          ) : viewMode === 'mesh' ? (
+            <MeshGraph topics={topics} onSelectTopic={onSelectTopic} />
           ) : topics.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: 'var(--text-muted)' }}>
