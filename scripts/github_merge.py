@@ -35,6 +35,7 @@ _SECRET_PATTERNS = [
     (re.compile(r'ya29\.[0-9A-Za-z\-_]+'), '[GOOGLE_OAUTH_TOKEN]'),
     (re.compile(r'vcp_[A-Za-z0-9]{40,}'), '[VERCEL_TOKEN]'),
     (re.compile(r'VERCEL_TOKEN=\S+'), '[VERCEL_TOKEN]'),
+    (re.compile(r'pypi-[A-Za-z0-9._\-]{40,}'), '[PYPI_API_TOKEN]'),
 ]
 
 def redact_text(text: str) -> str:
