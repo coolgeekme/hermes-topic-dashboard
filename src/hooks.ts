@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { TopicsData } from './types'
 
-const DATA_URL = '/topics.json'
+const DATA_URL = `${import.meta.env.BASE_URL}topics.json`
 
 export function useTopicsData() {
   const [data, setData] = useState<TopicsData | null>(null)
