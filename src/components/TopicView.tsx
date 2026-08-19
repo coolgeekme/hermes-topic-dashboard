@@ -25,11 +25,11 @@ const MODEL_ICONS: Record<string, string> = {
 function generateSummary(topic: Topic): string {
   const msgs = topic.messages || []
   const userMsgs = msgs.filter(m => m.role === 'user')
-  if (userMsgs.length === 0) return 'No user messages in this topic.'
+  if (userMsgs.length === 0) return '這個主題中沒有使用者訊息。'
   const first = userMsgs[0]?.content?.slice(0, 150) || ''
   const last = userMsgs[userMsgs.length - 1]?.content?.slice(0, 150) || ''
-  const platforms = (topic.platforms || []).map(p => PLATFORM_COLORS[p]?.label || p).join(' and ')
-  return `This conversation spans ${topic.session_count} session${topic.session_count > 1 ? 's' : ''} across ${platforms}. It began exploring "${first}${first.length > 140 ? '...' : ''}" and most recently covered "${last}${last.length > 140 ? '...' : ''}".`
+  const platforms = (topic.platforms || []).map(p => PLATFORM_COLORS[p]?.label || p).join('、')
+  return `這則對話共跨越 ${topic.session_count} 個對話回合，涵蓋 ${platforms}。\n最初聚焦於「${first}${first.length > 140 ? '...' : ''}」，最近則討論到「${last}${last.length > 140 ? '...' : ''}」。`
 }
 
 export function TopicView({ topic, onBack }: Props) {
@@ -49,7 +49,7 @@ export function TopicView({ topic, onBack }: Props) {
       <header className="flex-shrink-0 sticky top-0 z-30 px-4 sm:px-8 py-4" style={{ backgroundColor: 'rgba(2,6,23,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)' }}>
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 mb-2 text-[13px]" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>
-          <button onClick={onBack} className="hover:text-[var(--text)] transition-colors">← Topics</button>
+          <button onClick={onBack} className="hover:text-[var(--text)] transition-colors">← 主題</button>
           <span>/</span>
           <span style={{ color: '#d2bbff' }}>{topic.name.slice(0, 40)}</span>
         </div>
@@ -61,15 +61,15 @@ export function TopicView({ topic, onBack }: Props) {
             </h2>
             <div className="flex flex-wrap items-center gap-3 mt-1.5">
               <span className="text-[13px] flex items-center gap-1" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>
-                ◆ {topic.session_count} session{topic.session_count > 1 ? 's' : ''}
+                ◆ {topic.session_count} 個回合
               </span>
               <span className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--border)' }} />
               <span className="text-[13px] flex items-center gap-1" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>
-                💬 {topic.message_count_exported} messages
+                💬 {topic.message_count_exported} 則訊息
               </span>
               <span className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--border)' }} />
               <span className="text-[13px]" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>
-                Platforms:
+                平台：
               </span>
               {(topic.platforms || []).map((p) => {
                 const pc = PLATFORM_COLORS[p]
@@ -85,11 +85,11 @@ export function TopicView({ topic, onBack }: Props) {
             </div>
           </div>
           <button
-            onClick={() => { navigator.clipboard.writeText(topic.messages.map(m => `${m.role}: ${m.content}`).join('\n\n')) }}
+            onClick={() => { navigator.clipboard.writeText(topic.messages.map(m => `${m.role === 'user' ? '你' : '助手'}: ${m.content}`).join('\n\n')) }}
             className="flex-shrink-0 px-4 py-2 rounded-lg text-[13px] font-medium transition-colors flex items-center gap-2"
             style={{ backgroundColor: '#d2bbff', color: '#3f008e', fontFamily: "'Geist', monospace" }}
           >
-            📋 Copy Thread
+            📋 複製完整對話
           </button>
         </div>
       </header>
@@ -102,7 +102,7 @@ export function TopicView({ topic, onBack }: Props) {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span style={{ color: '#d2bbff' }}>📋</span>
-                <h3 className="text-[18px] font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Summary</h3>
+                <h3 className="text-[18px] font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>摘要</h3>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -110,10 +110,10 @@ export function TopicView({ topic, onBack }: Props) {
                   className="px-3 py-1.5 rounded text-[12px] border transition-colors flex items-center gap-1.5"
                   style={{ fontFamily: "'Geist', monospace", borderColor: 'var(--border)', color: 'var(--text-muted)' }}
                 >
-                  {summaryCopied ? '✓ Copied' : '📋 Copy'}
+                  {summaryCopied ? '✓ 已複製' : '📋 複製'}
                 </button>
                 <button className="w-8 h-8 rounded flex items-center justify-center border transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
-                  title="Regenerate">
+                  title="重新產生">
                   ↻
                 </button>
               </div>
@@ -123,13 +123,13 @@ export function TopicView({ topic, onBack }: Props) {
             </p>
             <div className="flex gap-4 mt-4 pt-3 border-t" style={{ borderColor: 'var(--card-border)' }}>
               <span className="text-[11px]" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>
-                Sessions: {topic.session_count}
+                回合數: {topic.session_count}
               </span>
               <span className="text-[11px]" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>
-                Messages: {topic.message_count_exported}
+                訊息數: {topic.message_count_exported}
               </span>
               <span className="text-[11px]" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>
-                Est. tokens: ~{totalTokens.toLocaleString()}
+                預估字元數: ~{totalTokens.toLocaleString()}
               </span>
             </div>
           </div>
@@ -141,7 +141,7 @@ export function TopicView({ topic, onBack }: Props) {
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px" style={{ backgroundColor: 'var(--card-border)' }} />
                   <span className="text-[11px] px-3 py-1 rounded-full border" style={{ fontFamily: "'Geist', monospace", borderColor: 'var(--card-border)', color: 'var(--text-muted)' }}>
-                    Session {gi + 1}
+                    第 {gi + 1} 段對話
                   </span>
                   <div className="flex-1 h-px" style={{ backgroundColor: 'var(--card-border)' }} />
                 </div>
@@ -156,7 +156,7 @@ export function TopicView({ topic, onBack }: Props) {
                   <div key={mi} className="flex justify-end">
                     <div className="max-w-[80%]">
                       <div className="flex items-center gap-2 mb-1.5 justify-end">
-                        <span className="text-[12px]" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>You</span>
+                        <span className="text-[12px]" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>你</span>
                         <div className="w-5 h-5 rounded-full flex items-center justify-center border" style={{ borderColor: 'var(--border)' }}>
                           <span className="text-[10px]">👤</span>
                         </div>
@@ -179,13 +179,13 @@ export function TopicView({ topic, onBack }: Props) {
                         </div>
                         <div>
                           <h4 className="text-[14px] font-semibold flex items-center gap-2" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: pc?.dot || 'var(--text)' }}>
-                            {MODEL_NAMES[msg.platform || '']?.name || pc?.label || 'Assistant'}
+                            {MODEL_NAMES[msg.platform || '']?.name || pc?.label || '助手'}
                             <span className="px-1.5 py-0.5 rounded text-[10px] border" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border)', color: 'var(--text-muted)', fontFamily: "'Geist', monospace" }}>
                               {MODEL_NAMES[msg.platform || '']?.version || 'v1'}
                             </span>
                           </h4>
                           <span className="text-[11px]" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>
-                            Response · {(msg.content?.length || 0)} chars
+                            回應 · {(msg.content?.length || 0)} 字元
                           </span>
                         </div>
                       </div>
@@ -194,7 +194,7 @@ export function TopicView({ topic, onBack }: Props) {
                         className="px-3 py-1.5 rounded text-[12px] border transition-colors flex items-center gap-1.5"
                         style={{ fontFamily: "'Geist', monospace", borderColor: 'var(--border)', color: 'var(--text-muted)' }}
                       >
-                        📋 Copy
+                        📋 複製
                       </button>
                     </div>
                     {/* Content */}

@@ -18,7 +18,7 @@ export function ContinueModal({ topic, onClose }: Props) {
     .filter((m) => m.content)
     .map((m) => {
       const platform = m.platform ? `[${m.platform}] ` : ''
-      return `${platform}${m.role === 'user' ? 'You' : 'Assistant'}: ${m.content?.slice(0, 250)}${(m.content?.length ?? 0) > 250 ? '...' : ''}`
+      return `${platform}${m.role === 'user' ? '你' : '助手'}: ${m.content?.slice(0, 250)}${(m.content?.length ?? 0) > 250 ? '...' : ''}`
     })
     .join('\n\n')
 
@@ -30,7 +30,7 @@ export function ContinueModal({ topic, onClose }: Props) {
   }
 
   async function handleCopy() {
-    const text = `[Continuing topic: "${topic.name}" — ${topic.message_count_exported} messages across ${topic.session_count} sessions on ${(topic.platforms || []).join(', ')}]\n\n${contextSummary}`
+    const text = `【繼續主題：${topic.name}】此主題包含 ${topic.message_count_exported} 則訊息、${topic.session_count} 個對話回合，涵蓋 ${(topic.platforms || []).join(', ')}\n\n${contextSummary}`
     try {
       await navigator.clipboard.writeText(text)
     } catch {
@@ -52,21 +52,21 @@ export function ContinueModal({ topic, onClose }: Props) {
         className="relative glass rounded-2xl p-5 w-full max-w-md animate-slide-up max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-base font-semibold mb-0.5">Continue "{topic.name}"</h3>
+        <h3 className="text-base font-semibold mb-0.5">繼續「{topic.name}」</h3>
 
         {/* Multi-platform / multi-session explanation */}
         {(isMultiPlatform || isMultiSession) && (
           <div className="mb-4 p-3 rounded-xl bg-accent-cyan/5 border border-accent-cyan/10 text-xs text-white/50 leading-relaxed">
             {isMultiPlatform && (
               <p className="mb-2">
-                This topic spans <strong className="text-white/70">{topic.platforms?.length} platforms</strong> —{' '}
+                這個主題跨越 <strong className="text-white/70">{topic.platforms?.length} 個平台</strong> —{' '}
                 {(topic.platforms || []).map((p) => PLATFORM_COLORS[p]?.label || p).join(', ')}.
-                Each platform's sessions are listed below with their own resume commands.
+                每個平台的會話都列在下方，可直接使用對應的接續指令。
               </p>
             )}
             <p>
-              <strong className="text-white/70">Copy context</strong> to bring everything into a fresh session on any platform.
-              Or <strong className="text-white/70">resume</strong> a specific session to pick up exactly where you left off.
+              <strong className="text-white/70">複製上下文</strong>，可在任一平台快速開啟新會話並接續。
+              或直接<strong className="text-white/70">恢復</strong>指定會話，從離開處接續。
             </p>
           </div>
         )}
@@ -84,10 +84,10 @@ export function ContinueModal({ topic, onClose }: Props) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-white/80">
-                {copied ? '✓ Copied!' : 'Copy context to clipboard'}
+                {copied ? '✓ 已複製' : '複製上下文到剪貼簿'}
               </div>
               <div className="text-[11px] text-white/30 truncate">
-                Paste into any agent to continue
+                貼上到任一平台即可繼續
               </div>
             </div>
           </button>
@@ -110,7 +110,7 @@ export function ContinueModal({ topic, onClose }: Props) {
                     </span>
                   )}
                   <span className="text-xs text-white/25">
-                    {sessions.length} session{sessions.length > 1 ? 's' : ''}
+                    {sessions.length} 個會話
                   </span>
                 </div>
                 <code className="block w-full p-2 bg-surface/80 rounded-lg text-[11px] text-white/35 font-mono select-all break-all">
@@ -122,7 +122,7 @@ export function ContinueModal({ topic, onClose }: Props) {
                       <div key={s.id} className="text-[9px] text-white/15 font-mono truncate">
                         {s.id === latest.id ? '→ ' : '  '}{s.id.slice(0, 20)}...
                         {s.title && ` — ${s.title.slice(0, 30)}`}
-                        {s.id === latest.id && ' (latest)'}
+                        {s.id === latest.id && ' (最新)'}
                       </div>
                     ))}
                   </div>
@@ -136,7 +136,7 @@ export function ContinueModal({ topic, onClose }: Props) {
           onClick={onClose}
           className="w-full mt-4 py-2.5 text-sm text-white/25 hover:text-white/40 transition-colors"
         >
-          Cancel
+          取消
         </button>
       </div>
     </div>
