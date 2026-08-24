@@ -38,6 +38,7 @@ _SECRET_PATTERNS = [
     (re.compile(r'pypi-[A-Za-z0-9._\-]{40,}'), '[PYPI_API_TOKEN]'),
     (re.compile(r'ntn_[A-Za-z0-9]{10,}'), '[NOTION_API_TOKEN]'),
     (re.compile(r'secret_[A-Za-z0-9]{20,}'), '[NOTION_API_TOKEN]'),
+    (re.compile(r'sbp_[a-zA-Z0-9]{20,}'), '[SUPABASE_TOKEN]'),
 ]
 
 def redact_text(text: str) -> str:
