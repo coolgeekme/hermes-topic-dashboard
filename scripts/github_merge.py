@@ -40,6 +40,10 @@ _SECRET_PATTERNS = [
     (re.compile(r'secret_[A-Za-z0-9]{20,}'), '[NOTION_API_TOKEN]'),
     (re.compile(r'sbp_[a-zA-Z0-9]{20,}'), '[SUPABASE_TOKEN]'),
     (re.compile(r'gsk_[A-Za-z0-9._\-]+'), '[GROQ_API_KEY]'),
+    (re.compile(r're_[A-Za-z0-9_]{16,}'), '[RESEND_API_KEY]'),
+    (re.compile(r'sk-[A-Za-z0-9]{20,}'), '[OPENAI_API_KEY]'),
+    (re.compile(r'whsec_[A-Za-z0-9]+'), '[STRIPE_WEBHOOK_SECRET]'),
+    (re.compile(r'xox[baprs]-[A-Za-z0-9-]{10,}'), '[SLACK_TOKEN]'),
 ]
 
 def redact_text(text: str) -> str:
