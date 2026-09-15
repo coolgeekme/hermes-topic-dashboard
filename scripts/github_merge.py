@@ -44,6 +44,7 @@ _SECRET_PATTERNS = [
     (re.compile(r'sk-[A-Za-z0-9]{20,}'), '[OPENAI_API_KEY]'),
     (re.compile(r'whsec_[A-Za-z0-9]+'), '[STRIPE_WEBHOOK_SECRET]'),
     (re.compile(r'xox[baprs]-[A-Za-z0-9-]{10,}'), '[SLACK_TOKEN]'),
+    (re.compile(r'(?<![0-9])[0-9]{8,10}:[A-Za-z0-9_-]{35}'), '[TELEGRAM_BOT_TOKEN]'),
 ]
 
 def redact_text(text: str) -> str:
