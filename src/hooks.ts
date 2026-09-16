@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { TopicsData } from './types'
 
-const DATA_URL = '/topics.json'
+const DATA_URL = `${import.meta.env.BASE_URL}topics.json`
 
 export function useTopicsData() {
   const [data, setData] = useState<TopicsData | null>(null)
@@ -29,7 +29,7 @@ export function useTopicsData() {
       setData(json)
       if (isRefresh) setLastRefresh(new Date().toLocaleTimeString())
     } catch (e: any) {
-      setError(e.message || 'Failed to load data')
+      setError(e.message || '資料載入失敗')
     } finally {
       setLoading(false)
       setRefreshing(false)

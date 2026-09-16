@@ -1,7 +1,7 @@
 {
-  "name": "Hermes Topics",
-  "short_name": "Hermes Topics",
-  "description": "Browse and continue your Hermes AI conversations by topic",
+  "name": "Hermes 主題儀表板",
+  "short_name": "Hermes 主題儀表板",
+  "description": "依主題瀏覽與繼續你的 Hermes AI 對話",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

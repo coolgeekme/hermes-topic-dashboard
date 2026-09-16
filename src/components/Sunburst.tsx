@@ -13,6 +13,14 @@ const CATEGORY_COLORS: Record<string, string> = {
   other: '#444748',
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  social: '社群',
+  dev: '開發',
+  ai: 'AI',
+  personal: '個人',
+  other: '其他',
+}
+
 function categorize(t: Topic): string {
   if (/instagram|linkedin|social.media|content|post/i.test(t.name)) return 'social'
   if (/github|repo|code|build|app\b|mobile|api|deploy|website/i.test(t.name)) return 'dev'
@@ -84,7 +92,7 @@ export function Sunburst({ topics, onSelectTopic }: Props) {
               fontFamily="'Hanken Grotesk', sans-serif"
               fontWeight={600}
             >
-              {cat}
+              {CATEGORY_LABELS[cat] || cat}
             </text>
           </g>
         ))}
@@ -123,7 +131,7 @@ export function Sunburst({ topics, onSelectTopic }: Props) {
           {topics.length}
         </text>
         <text x={cx} y={cy + 10} textAnchor="middle" fill="var(--text-muted)" fontSize={9} fontFamily="'JetBrains Mono', monospace">
-          topics
+          主題
         </text>
       </svg>
       
@@ -133,7 +141,7 @@ export function Sunburst({ topics, onSelectTopic }: Props) {
           <div key={cat} className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[cat] || '#666' }} />
             <span className="text-[11px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-muted)' }}>
-              {cat} ({catTopics.length})
+              {CATEGORY_LABELS[cat] || cat} ({catTopics.length})
             </span>
           </div>
         ))}

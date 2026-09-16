@@ -160,7 +160,7 @@ export function Mindmap({ topics, onSelectTopic }: Props) {
       </svg>
 
       <p className="text-[10px] mt-3" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-muted)' }}>
-        {nodes.edges.length} connections · hover to explore · click to open
+        {nodes.edges.length} 條連線 · 滑過可瀏覽 · 點擊開啟
       </p>
     </div>
   )

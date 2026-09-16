@@ -177,7 +177,7 @@ export function MeshGraph({ topics, onSelectTopic }: Props) {
           setTooltip({
             x: e.clientX - rect.left,
             y: e.clientY - rect.top - 20,
-            text: `${topic.name.slice(0, 40)}\n${topic.message_count_exported} messages · ${topic.session_count} sessions`,
+            text: `${topic.name.slice(0, 40)}\n${topic.message_count_exported} 則訊息 · ${topic.session_count} 個回合`,
           })
         }
       } else {
@@ -275,7 +275,7 @@ export function MeshGraph({ topics, onSelectTopic }: Props) {
       )}
       {topics.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <p style={{ color: 'var(--text-muted)' }}>No topics to visualize</p>
+          <p style={{ color: 'var(--text-muted)' }}>沒有可視覺化的主題</p>
         </div>
       )}
     </div>

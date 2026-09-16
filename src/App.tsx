@@ -47,16 +47,16 @@ export default function App() {
   }
 
   const NAV_ITEMS = [
-    { key: 'topics', label: 'Topics', icon: 'forum', test: () => true },
-    { key: 'analytics', label: 'Analytics', icon: 'bar_chart', test: () => true },
+    { key: 'topics', label: '主題', icon: 'forum', test: () => true },
+    { key: 'analytics', label: '分析', icon: 'bar_chart', test: () => true },
     null, // divider
-    { key: 'pinned', label: 'Pinned', icon: 'push_pin', test: (t: Topic) => pinned.has(t.id) },
-    { key: 'recent', label: 'Recent', icon: 'history', test: (t: Topic) => (Date.now() / 1000 - t.last_active) < 7 * 86400 },
-    { key: 'all', label: 'All', icon: 'select_all', test: () => true },
-    { key: 'social', label: 'Social', icon: 'group', test: (t: Topic) => /instagram|linkedin|social.media|content|post/i.test(t.name) },
-    { key: 'dev', label: 'Dev', icon: 'code', test: (t: Topic) => /github|repo|code|build|app\b|mobile|api|deploy|website/i.test(t.name) },
+    { key: 'pinned', label: '已釘選', icon: 'push_pin', test: (t: Topic) => pinned.has(t.id) },
+    { key: 'recent', label: '最近', icon: 'history', test: (t: Topic) => (Date.now() / 1000 - t.last_active) < 7 * 86400 },
+    { key: 'all', label: '全部', icon: 'select_all', test: () => true },
+    { key: 'social', label: '社群', icon: 'group', test: (t: Topic) => /instagram|linkedin|social.media|content|post/i.test(t.name) },
+    { key: 'dev', label: '開發', icon: 'code', test: (t: Topic) => /github|repo|code|build|app\b|mobile|api|deploy|website/i.test(t.name) },
     { key: 'ai', label: 'AI', icon: 'smart_toy', test: (t: Topic) => /ollama|llm|model|ai\b|agent|hermes|claude|codex|pricing/i.test(t.name) },
-    { key: 'personal', label: 'Personal', icon: 'person', test: (t: Topic) => /email|gmail|calendar|room|clean|buy|purchase|weekend|soccer|kevin|best buy/i.test(t.name) },
+    { key: 'personal', label: '個人', icon: 'person', test: (t: Topic) => /email|gmail|calendar|room|clean|buy|purchase|weekend|soccer|kevin|best buy/i.test(t.name) },
   ]
 
   const filteredTopics = useMemo(() => {
@@ -84,8 +84,8 @@ export default function App() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#131315] p-6">
         <div className="text-center">
-          <p className="text-[#8e9192] text-sm mb-3" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Couldn't load conversations</p>
-          <button onClick={refresh} className="px-4 py-2 rounded-full bg-[#1f1f21] text-[#e4e2e4] text-sm hover:bg-[#2a2a2c] transition-colors border border-[#444748]/50">Try Again</button>
+          <p className="text-[#8e9192] text-sm mb-3" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>無法載入對話資料</p>
+          <button onClick={refresh} className="px-4 py-2 rounded-full bg-[#1f1f21] text-[#e4e2e4] text-sm hover:bg-[#2a2a2c] transition-colors border border-[#444748]/50">重試</button>
         </div>
       </div>
     )

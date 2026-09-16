@@ -20,8 +20,8 @@ export function Sidebar({ activeNav, onNavChange, navItems, allTopics, pinned, t
   return (
     <nav className="w-64 flex-shrink-0 flex flex-col px-6 py-6" style={{ backgroundColor: 'var(--bg-nav)', borderRight: '1px solid var(--border)' }}>
       <div className="mb-8">
-        <h1 className="text-[18px] font-bold tracking-tight" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: '#d2bbff' }}>Orchestrator</h1>
-        <p className="text-[11px] mt-1" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>Pro Workspace</p>
+        <h1 className="text-[18px] font-bold tracking-tight" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: '#d2bbff' }}>主控台</h1>
+        <p className="text-[11px] mt-1" style={{ fontFamily: "'Geist', monospace", color: 'var(--text-muted)' }}>專業工作區</p>
       </div>
 
       <div className="flex-1 flex flex-col gap-1">
@@ -63,12 +63,12 @@ export function Sidebar({ activeNav, onNavChange, navItems, allTopics, pinned, t
           style={{ fontFamily: "'Geist', monospace", color: 'var(--sidebar-text)' }}
         >
           <span className="text-[15px] w-5 text-center">{theme === 'dark' ? '☀' : '🌙'}</span>
-          <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+          <span>{theme === 'dark' ? '淺色' : '深色'}</span>
         </button>
         <button className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] transition-colors text-left"
           style={{ fontFamily: "'Geist', monospace", color: 'var(--sidebar-text)' }}>
           <span className="text-[15px] w-5 text-center">⚙</span>
-          <span>Settings</span>
+          <span>設定</span>
         </button>
       </div>
     </nav>

@@ -42,7 +42,7 @@ export function MessageBubble({ message }: Props) {
             className="text-[11px] mt-1 transition-colors"
             style={{ color: '#22d3ee', opacity: 0.6 }}
           >
-            {expanded ? 'Show less' : `Show more (${Math.round((content.length - COLLAPSE_LENGTH) / 1000)}K more)`}
+            {expanded ? '收合' : `顯示更多（還有 ${Math.round((content.length - COLLAPSE_LENGTH) / 1000)}K 字）`}
           </button>
         )}
         <div className="flex items-center justify-between mt-1">
@@ -72,8 +72,8 @@ function decodeContent(text: string): string {
 function formatTime(iso: string): string {
   try {
     const d = new Date(iso)
-    return d.toLocaleString(undefined, {
-      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+    return d.toLocaleString('zh-Hant', {
+      month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit',
     })
   } catch { return '' }
 }
