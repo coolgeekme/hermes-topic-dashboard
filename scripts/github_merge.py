@@ -74,12 +74,36 @@ _SECRET_PATTERNS = [
     (re.compile(r'\b[A-Z0-9]{4}-[A-Z0-9]{4}\b'), '[ACCESS_CODE]'),
 ]
 
+_CRED_LABEL_CTX = re.compile(
+    r'(?i)\b(pass(?:word|phrase|code)s?|passwd|pwd|credentials?|access\s+code)\b')
+_QUOTED_TOKEN = re.compile(r'[`*"\'"]([^\s`*"\'\"]{4,})[`*"\'\'"]')
+
+
+def _redact_tokens_near_label(text: str) -> str:
+    """Redact quoted/backticked tokens sitting just after a credential label.
+
+    Catches forms the positional patterns miss, e.g.
+    "mismatched fallback passcodes `CoS2026!` vs `bizgrowth-train`".
+    Only tokens within 80 chars of a label are touched.
+    """
+    label_ends = [m.end() for m in _CRED_LABEL_CTX.finditer(text)]
+    if not label_ends:
+        return text
+
+    def repl(m):
+        if any(0 <= m.start() - e <= 80 for e in label_ends):
+            return m.group(0)[0] + '[REDACTED]' + m.group(0)[-1]
+        return m.group(0)
+
+    return _QUOTED_TOKEN.sub(repl, text)
+
+
 def redact_text(text: str) -> str:
     if not text:
         return text
     for p, r in _SECRET_PATTERNS:
         text = p.sub(r, text)
-    return text
+    return _redact_tokens_near_label(text)
 
 HERMES_FILE = os.path.expanduser("~/.hermes/topic_dashboard_data/topics.json")
 CLAUDE_VPS_FILE = os.path.expanduser("~/.hermes/claude_dashboard_data/claude_sessions.json")
