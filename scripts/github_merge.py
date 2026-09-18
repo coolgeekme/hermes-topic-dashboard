@@ -45,6 +45,12 @@ _SECRET_PATTERNS = [
     (re.compile(r'whsec_[A-Za-z0-9]+'), '[STRIPE_WEBHOOK_SECRET]'),
     (re.compile(r'xox[baprs]-[A-Za-z0-9-]{10,}'), '[SLACK_TOKEN]'),
     (re.compile(r'(?<![0-9])[0-9]{8,10}:[A-Za-z0-9_-]{35}'), '[TELEGRAM_BOT_TOKEN]'),
+    # Plaintext credentials in prose/notes ("password: hunter2", "PWD=hunter2").
+    # Added 2026-09-18 after cleartext site/admin passwords were found in the
+    # PUBLIC data/hermes_topics.json export. Value charset stops at whitespace,
+    # quotes and backslashes so surrounding prose is preserved.
+    (re.compile(r'(?i)\b(password|passwd|pwd|passphrase|passcode)\b(\s*[:=]\s*)["\'`*]{0,3}[^\s\\"\'`*]{4,}'),
+     r'\1\2[REDACTED]'),
 ]
 
 def redact_text(text: str) -> str:
