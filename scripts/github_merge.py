@@ -45,6 +45,19 @@ _SECRET_PATTERNS = [
     (re.compile(r'whsec_[A-Za-z0-9]+'), '[STRIPE_WEBHOOK_SECRET]'),
     (re.compile(r'xox[baprs]-[A-Za-z0-9-]{10,}'), '[SLACK_TOKEN]'),
     (re.compile(r'(?<![0-9])[0-9]{8,10}:[A-Za-z0-9_-]{35}'), '[TELEGRAM_BOT_TOKEN]'),
+    # Generic environment-style secret assignments: KIE_API_KEY=a1b2c3d4e5f6...,
+    # MY_TOKEN=xyz, SOME_PASSWORD=hunter2, prod_SECRET=...
+    # Added 2026-09-18: a live `KIE_API_KEY=<32-hex>` was found in the PUBLIC
+    # data/hermes_topics.json + data/topics.json exports (and in served
+    # dist/topics.json + the public repo history). Only VERCEL_TOKEN= had an
+    # env-assignment rule, so any other `*_KEY=`/`*_TOKEN=` shape leaked.
+    (re.compile(
+        r'(?i)\b([A-Z0-9_]{0,40}'
+        r'(?:API[_]?KEY|APIKEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|ACCESS[_]?KEY))'
+        r'\s*=\s*["\']?([^\s"\'\\]{6,})'),
+     r'\1=[REDACTED]'),
+    # DisciplinedOS MCP keys (dos_mcp_<hex>).
+    (re.compile(r'dos_mcp_[A-Za-z0-9]{10,}'), '[DOS_MCP_KEY]'),
     # Plaintext credentials in prose/notes ("password: hunter2", "PWD=hunter2",
     # "the passcode is hunter2", "Login: admin / hunter2").
     # Added 2026-09-18 after cleartext site/admin passwords were found in the
