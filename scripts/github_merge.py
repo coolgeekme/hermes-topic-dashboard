@@ -45,12 +45,33 @@ _SECRET_PATTERNS = [
     (re.compile(r'whsec_[A-Za-z0-9]+'), '[STRIPE_WEBHOOK_SECRET]'),
     (re.compile(r'xox[baprs]-[A-Za-z0-9-]{10,}'), '[SLACK_TOKEN]'),
     (re.compile(r'(?<![0-9])[0-9]{8,10}:[A-Za-z0-9_-]{35}'), '[TELEGRAM_BOT_TOKEN]'),
-    # Plaintext credentials in prose/notes ("password: hunter2", "PWD=hunter2").
+    # Plaintext credentials in prose/notes ("password: hunter2", "PWD=hunter2",
+    # "the passcode is hunter2", "Login: admin / hunter2").
     # Added 2026-09-18 after cleartext site/admin passwords were found in the
     # PUBLIC data/hermes_topics.json export. Value charset stops at whitespace,
     # quotes and backslashes so surrounding prose is preserved.
-    (re.compile(r'(?i)\b(password|passwd|pwd|passphrase|passcode)\b(\s*[:=]\s*)["\'`*]{0,3}[^\s\\"\'`*]{4,}'),
+    (re.compile(r'(?i)\b(pass(?:word|phrase|code)|passwd|pwd)\b(\**\s*[:=]\s*)["\'`*\[]{0,3}\s*([^\s\\"\'`*]{4,})'),
      r'\1\2[REDACTED]'),
+    (re.compile(r'(?i)\b(pass(?:word|phrase|code)|passwd|pwd)\b(\**\s+(?:is|was)\s+)["\'`*]{0,3}\s*([^\s\\"\'`*]{4,})'),
+     r'\1\2[REDACTED]'),
+    (re.compile(r'(?i)\b(login|log ?in|credentials?)\b([^\n]{0,60}?/\s*)["\'`*]{0,3}\s*([^\s\\"\'`*]{4,})'),
+     r'\1\2[REDACTED]'),
+    (re.compile(r'(?i)\b(access|invite)\s+code\b(\s*[:=]?\s*)["\'`*]{0,3}\s*([A-Z0-9][A-Z0-9-]{4,})'),
+     r'\1 code\2[REDACTED]'),
+    (re.compile(r'(?i)\b(pass(?:word|phrase|code)|passwd|pwd)\b(\**\s*[—–]\s*)["\'`*]{0,3}\s*([^\s\\"\'`*]{4,})'),
+     r'\1\2[REDACTED]'),
+    # Bare "passcode Elliott2026" — only when the value looks credential-ish
+    # (>=4 chars AND contains a digit), so prose like "password reset" survives.
+    (re.compile(r'(?i)\b(pass(?:word|phrase|code))\b(\s+)(?=[^\s\\"\'`*]{4,})(?=[^\s\\"\'`*]*\d)([^\s\\"\'`*]{4,})'),
+     r'\1\2[REDACTED]'),
+    # "passcode (`CoS2026!`)" — value in backticks/parens with no separator.
+    (re.compile(r'(?i)\b(pass(?:word|phrase|code)|passwd|pwd)\b(\s*\(?\s*)["\'`*]{1,3}\s*([^\s\\"\'`*()\[\]]{4,})'),
+     r'\1\2[REDACTED]'),
+    # "Login: admin / hunter2", "(admin / nextcap2026)"
+    (re.compile(r'(?i)\b(admin|user|root|login|log ?in)\b(\s*/\s*)["\'`*]{0,3}\s*([^\s\\"\'`*()\[\]]{4,})'),
+     r'\1\2[REDACTED]'),
+    # Standalone access/test-drive codes (YMNC-85HC, 77WH-NW9J, QDGX-5PH8).
+    (re.compile(r'\b[A-Z0-9]{4}-[A-Z0-9]{4}\b'), '[ACCESS_CODE]'),
 ]
 
 def redact_text(text: str) -> str:
