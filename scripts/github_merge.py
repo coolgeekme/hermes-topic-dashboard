@@ -23,6 +23,13 @@ _SECRET_PATTERNS = [
     (re.compile(r'sk_live\w*'), '[STRIPE_LIVE_KEY]'),
     (re.compile(r'sk_test\w*'), '[STRIPE_TEST_KEY]'),
     (re.compile(r'rk_live\w*'), '[STRIPE_RESTRICTED_KEY]'),
+    # Publishable keys aren't secret but embed the Stripe account id.
+    (re.compile(r'pk_(?:live|test)_[A-Za-z0-9]{10,}'), '[STRIPE_PUBLISHABLE_KEY]'),
+    # Pocket AI (Hey Pocket) key is a bare `pk_<hex>` — no Stripe rule matched
+    # it. Added 2026-09-19: a live key identical to ~/.hermes/pocket_api.json
+    # (and a Stripe pk_live_ key) were published in the PUBLIC
+    # data/hermes_topics.json + data/topics.json since the Aug 14 session.
+    (re.compile(r'\bpk_[0-9a-fA-F]{24,}\b'), '[POCKET_API_KEY]'),
     (re.compile(r'sk-ant\S*'), '[ANTHROPIC_API_KEY]'),
     (re.compile(r'\d+-[a-zA-Z0-9_]+\.apps\.googleusercontent\.com'), '[GOOGLE_CLIENT_ID]'),
     (re.compile(r'GOCSPX-[a-zA-Z0-9_-]+'), '[GOOGLE_CLIENT_SECRET]'),
