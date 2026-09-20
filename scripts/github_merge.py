@@ -65,6 +65,13 @@ _SECRET_PATTERNS = [
      r'\1=[REDACTED]'),
     # DisciplinedOS MCP keys (dos_mcp_<hex>).
     (re.compile(r'dos_mcp_[A-Za-z0-9]{10,}'), '[DOS_MCP_KEY]'),
+    # Composio project API keys (<ak_H_...> style bare token). Added 2026-09-20:
+    # a live COMPOSIO_PROJECT_API_KEY from ~/.hermes/.env was found verbatim in
+    # the PUBLIC data/hermes_topics.json + data/topics.json (since the 2026-08-04
+    # export) and in the publicly served dist/topics.json. It leaked as a BARE
+    # value in prose ("here is the key: ak_..."), so the generic `NAME=`-anchored
+    # assignment rule above never matched it.
+    (re.compile(r'\bak_[A-Za-z0-9_-]{10,}'), '[COMPOSIO_API_KEY]'),
     # Plaintext credentials in prose/notes ("password: hunter2", "PWD=hunter2",
     # "the passcode is hunter2", "Login: admin / hunter2").
     # Added 2026-09-18 after cleartext site/admin passwords were found in the
