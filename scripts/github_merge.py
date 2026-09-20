@@ -103,7 +103,60 @@ _SECRET_PATTERNS = [
 
 _CRED_LABEL_CTX = re.compile(
     r'(?i)\b(pass(?:word|phrase|code)s?|passwd|pwd|credentials?|access\s+code)\b')
-_QUOTED_TOKEN = re.compile(r'[`*"\'"]([^\s`*"\'\"]{4,})[`*"\'\'"]')
+# ── Dynamic redaction of live env secret VALUES ───────────────────────
+# Added 2026-09-20: a Pickleball-coach key (PBCOACH_API_KEY) and a Composio key
+# (COMPOSIO_API_KEY) were found verbatim as BARE values in the PUBLIC
+# data/hermes_topics.json + data/topics.json and in the served dist/topics.json,
+# and the hermes.coolgeek.me login password leaked inside a markdown table.
+# Shape rules can't cover bare values, so anything whose value matches a
+# secret-named variable in ~/.hermes/.env is redacted wherever it appears.
+# Do NOT add one-off prefix rules for the next leak — this covers `NAME=value`
+# shapes, bare tokens, table cells and prose alike.
+_ENV_SECRET_FILES = [
+    os.path.expanduser("~/.hermes/.env"),
+    os.path.expanduser("~/projects/hermes-topic-dashboard/.env.local"),
+]
+_ENV_SECRET_NAME = re.compile(
+    r'(?i)((?:API[_]?KEY|APIKEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|ACCESS[_]?KEY))')
+
+
+def _load_env_secret_values() -> list[str]:
+    values = set()
+    for path in _ENV_SECRET_FILES:
+        try:
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                for line in fh:
+                    m = re.match(
+                        r'\s*(?:export\s+)?([A-Za-z0-9_]+)\s*=\s*(.*)$', line.rstrip("\n"))
+                    if not m:
+                        continue
+                    name, raw = m.group(1), m.group(2).strip().strip('"').strip("'")
+                    if not _ENV_SECRET_NAME.search(name):
+                        continue
+                    # Keep values that can't be confused with ordinary prose.
+                    if len(raw) < 8 or re.search(r'\s', raw):
+                        continue
+                    if raw.startswith(('/', '~', 'http', '#', '$')):
+                        continue
+                    if re.fullmatch(r'[\d.]+', raw) or raw.lower() in ('true', 'false', 'none', 'null'):
+                        continue
+                    values.add(raw)
+        except OSError:
+            continue
+    return sorted(values, key=len, reverse=True)
+
+
+_env_values = _load_env_secret_values()
+_ENV_SECRET_RE = (
+    re.compile('|'.join(re.escape(v) for v in _env_values)) if _env_values else None
+)
+
+_ENV_ASSIGNMENT_RE = re.compile(
+    r'(?i)\b([A-Z0-9_]{0,40}'
+    r'(?:API[_]?KEY|APIKEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|ACCESS[_]?KEY))'
+    r'\s*=\s*["\']?([^\s"\'\\]{6,})')
+
+_QUOTED_TOKEN = re.compile(r'[`*"\'"]([^\s`*"\'\\"]{4,})[`*"\'"]')
 
 
 def _redact_tokens_near_label(text: str) -> str:
@@ -128,6 +181,9 @@ def _redact_tokens_near_label(text: str) -> str:
 def redact_text(text: str) -> str:
     if not text:
         return text
+    # Live env secret VALUES first — catches bare tokens the shape rules miss.
+    if _ENV_SECRET_RE is not None:
+        text = _ENV_SECRET_RE.sub('[REDACTED]', text)
     for p, r in _SECRET_PATTERNS:
         text = p.sub(r, text)
     return _redact_tokens_near_label(text)
