@@ -100,6 +100,16 @@ _SECRET_PATTERNS = [
      r'\1\2[REDACTED]'),
     # Standalone access/test-drive codes (YMNC-85HC, 77WH-NW9J, QDGX-5PH8).
     (re.compile(r'\b[A-Z0-9]{4}-[A-Z0-9]{4}\b'), '[ACCESS_CODE]'),
+    # Token-gated web-UI view URLs. The URL *shape* is the credential — the
+    # 32-hex path segment is a bearer token (`https://srv….ts.net:10000/v/<hex>/`).
+    # Added 2026-09-23 (2nd pass): the .env/value loaders already redact the
+    # CURRENT token from ~/.hermes/view-token.txt, but a token that has since
+    # been ROTATED lives nowhere on disk, so no value-based loader can ever
+    # match it — the old token was still sitting in the PUBLIC data/*.json and
+    # the served dist/topics.json after the rotation. Match by shape instead:
+    # this covers old, current and future tokens in one rule.
+    (re.compile(r'(https?://[^\s"\'\\<>]*?)/v/[0-9a-fA-F]{16,}'),
+     r'\1/v/[REDACTED]'),
 ]
 
 _CRED_LABEL_CTX = re.compile(
