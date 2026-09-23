@@ -7,6 +7,7 @@ into the unified topics.json without needing access to state.db.
 """
 
 import json
+import glob
 import os
 import urllib.request
 import re
@@ -119,6 +120,94 @@ _ENV_SECRET_FILES = [
 _ENV_SECRET_NAME = re.compile(
     r'(?i)((?:API[_]?KEY|APIKEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|ACCESS[_]?KEY))')
 
+# Added 2026-09-23: not every live secret lives in .env. The Hermes web-UI
+# *view token* (a bare 32-hex bearer token, `~/.hermes/view-token.txt`) was found
+# verbatim inside a token-gated `https://srv….ts.net:10000/v/<token>/` URL in the
+# PUBLIC data/hermes_topics.json — no `NAME=value` shape, no recognizable prefix,
+# so neither the shape rules nor the .env loader matched it. Same fix as pitfall
+# 11: read the live file, redact its bare value everywhere. Extend these globs for
+# the next secret file; never add a one-off prefix rule.
+_SECRET_FILE_GLOBS = [
+    "~/.hermes/*token*.txt",
+    "~/.hermes/*secret*",
+    "~/.hermes/*password*.txt",
+    "~/.hermes/*.token",
+    "~/.hermes/secrets/*",
+    "~/.hermes/mcp-tokens/*",
+]
+
+
+def _looks_like_secret_value(raw: str) -> str | None:
+    """Return `raw` if it's plausibly a standalone secret (not prose/paths)."""
+    raw = raw.strip().strip('"').strip("'")
+    if len(raw) < 12 or re.search(r'\s', raw):
+        return None
+    if raw.startswith(('/', '~', '#', '$')):
+        return None
+    if re.fullmatch(r'[\d.]+', raw) or raw.lower() in ('true', 'false', 'none', 'null'):
+        return None
+    return raw
+
+
+def _load_secret_file_values() -> set:
+    """Bare secrets stored one-per-file (not `NAME=value` in .env).
+
+    Covers plain-text token/password files, `NAME=value` files, and JSON blobs
+    (MCP OAuth tokens) whose keys are secret-named.
+    """
+    values = set()
+    paths = []
+    for pattern in _SECRET_FILE_GLOBS:
+        paths.extend(sorted(glob.glob(os.path.expanduser(pattern))))
+    for path in paths:
+        try:
+            if not os.path.isfile(path):
+                continue
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                text = fh.read()
+        except OSError:
+            continue
+
+        stripped = text.strip()
+        if stripped.startswith('{') or stripped.startswith('['):
+            try:
+                blob = json.loads(stripped)
+            except ValueError:
+                continue
+
+            def walk(node):
+                if isinstance(node, dict):
+                    for k, v in node.items():
+                        if isinstance(v, str) and _ENV_SECRET_NAME.search(str(k)):
+                            cand = _looks_like_secret_value(v)
+                            if cand:
+                                values.add(cand)
+                        else:
+                            walk(v)
+                elif isinstance(node, list):
+                    for v in node:
+                        walk(v)
+
+            walk(blob)
+            continue
+
+        # Plain text: either `NAME=value` lines or a single bare secret.
+        for line in text.splitlines():
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            m = re.match(r'\s*(?:export\s+)?([A-Za-z0-9_]+)\s*=\s*(.*)$', line)
+            if m:
+                if _ENV_SECRET_NAME.search(m.group(1)):
+                    cand = _looks_like_secret_value(m.group(2))
+                    if cand:
+                        values.add(cand)
+            else:
+                cand = _looks_like_secret_value(line)
+                if cand:
+                    values.add(cand)
+    return values
+
 
 def _load_env_secret_values() -> list[str]:
     values = set()
@@ -143,6 +232,8 @@ def _load_env_secret_values() -> list[str]:
                     values.add(raw)
         except OSError:
             continue
+    # Bare secrets stored outside .env (view token, webhooks, MCP OAuth blobs).
+    values.update(_load_secret_file_values())
     return sorted(values, key=len, reverse=True)
 
 
