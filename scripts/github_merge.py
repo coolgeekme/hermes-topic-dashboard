@@ -96,7 +96,20 @@ _SECRET_PATTERNS = [
     (re.compile(r'(?i)\b(pass(?:word|phrase|code)|passwd|pwd)\b(\s*\(?\s*)["\'`*]{1,3}\s*([^\s\\"\'`*()\[\]]{4,})'),
      r'\1\2[REDACTED]'),
     # "Login: admin / hunter2", "(admin / nextcap2026)"
-    (re.compile(r'(?i)\b(admin|user|root|login|log ?in)\b(\s*/\s*)["\'`*]{0,3}\s*([^\s\\"\'`*()\[\]]{4,})'),
+    # 2026-09-24: a bare `…/root/…` is a FILESYSTEM PATH, not a credential pair.
+    # The old `(\s*/\s*)` separator ate every absolute path in the corpus —
+    # 6,633 `/root/[REDACTED]` strings in the served dist/topics.json and in the
+    # PUBLIC data exports (project dirs, script paths, `cd /root/projects/… && npx
+    # vercel`), i.e. the live dashboard showed mangled paths everywhere. Same
+    # doctrine as the [ACCESS_CODE] fix (pitfall 12): guard on what the *label*
+    # sits inside, never on a one-off value.
+    #   - `(?<![\w/])` → don't match a label that is itself mid-path (`/root/…`).
+    #   - separator needs whitespace on at least one side → `/root/projects/x`
+    #     has none and can never match, while `admin / hunter2`, `admin/ hunter2`
+    #     and `(admin / nextcap2026)` still do.
+    # Verified over the raw exports before landing: 7,016 path/prose strings
+    # newly preserved, 0 credential-shaped strings newly published.
+    (re.compile(r'(?i)(?<![\w/])\b(admin|user|root|login|log ?in)\b(\s+/\s*|\s*/\s+)["\'`*]{0,3}\s*([^\s\\"\'`*()\[\]]{4,})'),
      r'\1\2[REDACTED]'),
     # Standalone access/test-drive codes (YMNC-85HC, 77WH-NW9J, QDGX-5PH8) are
     # handled by `_redact_access_codes()` below, NOT by a shape regex here.

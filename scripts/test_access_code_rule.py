@@ -1,4 +1,9 @@
-"""Regression check for the [ACCESS_CODE] shape rule (2026-09-24)."""
+"""Regression check for the redaction shape rules.
+
+Covers:
+  * [ACCESS_CODE] rule (2026-09-24) — must not eat session UUIDs / U+ ranges.
+  * admin|user|root|login pair rule (2026-09-24) — must not eat file paths.
+"""
 import sys
 sys.path.insert(0, '/root/projects/hermes-topic-dashboard/scripts')
 from github_merge import redact_text  # noqa: E402
@@ -17,6 +22,19 @@ MUST_SURVIVE = [
     # bare 4-4 that is part of a path-ish run — still redacted (pre-existing
     # conservative behaviour: the run isn't a hex id, so the pair is treated as
     # a code). Kept as a documented expectation, not a regression.
+
+    # Absolute/relative file paths — the admin|user|root|login pair rule used to
+    # mangle every `/root/…` path in the corpus (6,633 of them on the live
+    # dashboard). `…/root/…` is a path, never a credential pair.
+    "/root/projects/cos-forge/bundles/quick-flow-plumbing-chief-of-staff/claude-code",
+    "python3 /root/.hermes/scripts/topic_dashboard_refresh.py",
+    "/root/.hermes/topic_dashboard_data/topics.json",
+    "cd /root/projects/reggie-command-center && npx vercel --prod --yes",
+    "files: /root/.hermes/cache/business-insights.json",
+    "root/.hermes/state.db",
+    "allowed_users: root/admin, deploy/user",
+    "static/js/admin/section-headers.tsx",
+    "public/img/user/red32.png",
 ]
 MUST_REDACT_EXTRA = [
     "/backups/db-2026-0912-file",
@@ -31,7 +49,13 @@ MUST_REDACT = [
     "(ABCD-EFGH)",
     "[ABCD-EFGH]",
     "code=1234-5678",
+    # admin|user|root|login credential pairs must STILL redact (whitespace form).
+    "Login: admin / hunter2",
+    "(admin / nextcap2026)",
+    "creds → admin / test-only-change-me-1234",
+    "root / hunter2-secret",
 ]
+
 
 # standalone all-digit pair: kept redacted on purpose (indistinguishable from an
 # all-numeric access code); only *embedded* pairs (in a UUID / after '+') survive.
