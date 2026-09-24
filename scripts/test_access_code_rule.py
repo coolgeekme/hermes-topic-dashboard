@@ -21,7 +21,7 @@ MUST_SURVIVE = [
     "LATIN U+0152-0153, U+0131",
     "font range U+2014-2015 and U+00A0",
     # bare 4-4 that is part of a path-ish run — still redacted (pre-existing
-    # conservative behaviour: the run isn't a hex id, so the pair is treated as
+    # conservative behavior: the run isn't a hex id, so the pair is treated as
     # a code). Kept as a documented expectation, not a regression.
 
     # Absolute/relative file paths — the admin|user|root|login pair rule used to
