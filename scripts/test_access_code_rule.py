@@ -4,6 +4,7 @@ Covers:
   * [ACCESS_CODE] rule (2026-09-24) — must not eat session UUIDs / U+ ranges.
   * admin|user|root|login pair rule (2026-09-24) — must not eat file paths.
 """
+import os
 import sys
 sys.path.insert(0, '/root/projects/hermes-topic-dashboard/scripts')
 from github_merge import redact_text  # noqa: E402
@@ -75,6 +76,32 @@ for s in MUST_REDACT + MUST_REDACT_EXTRA:
     elif redact_text(out) != out:
         fails += 1
         print(f"FAIL idempotent: {s!r}")
+
+# ── Value-loader check (2026-09-24, 3rd pass) ─────────────────────────
+# Live passcodes / invite codes that only appear in PROSE or markdown table
+# cells are redacted by VALUE, from ~/.hermes/redaction-values.env via
+# _load_env_secret_values(). That file is private and absent in CI, so this
+# check self-skips when it isn't readable — the mechanism (not the secret) is
+# what the test guards.
+_RV = os.path.expanduser('~/.hermes/redaction-values.env')
+rv_checked = 0
+if os.path.exists(_RV):
+    for line in open(_RV, encoding='utf-8'):
+        line = line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        name, val = line.split('=', 1)
+        val = val.strip().strip('"').strip("'")
+        rv_checked += 1
+        for probe in (val, f'| Access code | {val} |', f'sha256("{val}")',
+                      f'passcode gate ({val}) shipped'):
+            out = redact_text(probe)
+            if val in out:
+                fails += 1
+                print(f"FAIL value-loader: {probe!r} -> {out!r} (name={name})")
+    print(f"{rv_checked} redaction-values entries checked")
+else:
+    print(f"note: {_RV} not present — value-loader check skipped")
 
 print(f"\n{len(MUST_SURVIVE)} survive-checks, {len(MUST_REDACT)} redact-checks, {fails} failures")
 sys.exit(1 if fails else 0)

@@ -61,7 +61,8 @@ _SECRET_PATTERNS = [
     # env-assignment rule, so any other `*_KEY=`/`*_TOKEN=` shape leaked.
     (re.compile(
         r'(?i)\b([A-Z0-9_]{0,40}'
-        r'(?:API[_]?KEY|APIKEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|ACCESS[_]?KEY))'
+        r'(?:API[_]?KEY|APIKEY|SECRET|TOKEN|PASSWORD|PASSWD|PASSCODE|CREDENTIAL'
+        r'|ACCESS[_]?KEY|ACCESS[_]?CODE|INVITE[_]?CODE))'
         r'\s*=\s*["\']?([^\s"\'\\]{6,})'),
      r'\1=[REDACTED]'),
     # DisciplinedOS MCP keys (dos_mcp_<hex>).
@@ -149,10 +150,24 @@ _CRED_LABEL_CTX = re.compile(
 # shapes, bare tokens, table cells and prose alike.
 _ENV_SECRET_FILES = [
     os.path.expanduser("~/.hermes/.env"),
+    # Dedicated value-store for live credentials that only ever appear in session
+    # PROSE / markdown table cells, where no shape rule can reach them.
+    # Added 2026-09-24 (3rd pass): a Command Center passcode (`Phil2026`, inside
+    # `sha256("Phil2026")`), the BizGrowth consultant training passcode
+    # (`CoS2026!`, in a table cell), the NextCap admin password (`nextcap2026`,
+    # in the prose of a previous cron report) and an ArcheForge Foundry invite
+    # code (`WNFFP7HAKD`, in a `| Access code | … |` table cell) were all
+    # published verbatim in the PUBLIC data/*.json + served dist/topics.json.
+    # See SKILL.md pitfall 11 (3rd pass).
+    os.path.expanduser("~/.hermes/redaction-values.env"),
     os.path.expanduser("~/projects/hermes-topic-dashboard/.env.local"),
 ]
+# `*_PASSCODE` / `*_ACCESS_CODE` / `*_INVITE_CODE` were missing until
+# 2026-09-24 — the values above are stored under those names, and a passcode is
+# a credential exactly like a password. Extend this NAME class, never a value.
 _ENV_SECRET_NAME = re.compile(
-    r'(?i)((?:API[_]?KEY|APIKEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|ACCESS[_]?KEY))')
+    r'(?i)((?:API[_]?KEY|APIKEY|SECRET|TOKEN|PASSWORD|PASSWD|PASSCODE|CREDENTIAL'
+    r'|ACCESS[_]?KEY|ACCESS[_]?CODE|INVITE[_]?CODE))')
 
 # Added 2026-09-23: not every live secret lives in .env. The Hermes web-UI
 # *view token* (a bare 32-hex bearer token, `~/.hermes/view-token.txt`) was found
@@ -278,7 +293,8 @@ _ENV_SECRET_RE = (
 
 _ENV_ASSIGNMENT_RE = re.compile(
     r'(?i)\b([A-Z0-9_]{0,40}'
-    r'(?:API[_]?KEY|APIKEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|ACCESS[_]?KEY))'
+    r'(?:API[_]?KEY|APIKEY|SECRET|TOKEN|PASSWORD|PASSWD|PASSCODE|CREDENTIAL'
+    r'|ACCESS[_]?KEY|ACCESS[_]?CODE|INVITE[_]?CODE))'
     r'\s*=\s*["\']?([^\s"\'\\]{6,})')
 
 _QUOTED_TOKEN = re.compile(r'[`*\"\'"]([^\s`*\"\'\\"]{4,})[`*\"\'\"]')
