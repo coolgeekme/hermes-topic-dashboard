@@ -309,6 +309,72 @@ def redact(text: str) -> str:
     # Then redact secrets
     return redact_text(text)
 
+# ── Redacted archive writer ───────────────────────────────────────────
+def redact_tar_gz(src_path: str, dst_path: str) -> bool:
+    """Write a REDACTED copy of the local Claude export archive (tar.gz).
+
+    `data/claude_local_sessions.tar.gz` and `public/claude_local_sessions.tar.gz`
+    are tracked in a PUBLIC repo and were the last unredacted path into it
+    (SKILL.md pitfall 8, 2026-09-23). Same doctrine as `redact_text()`: redact
+    DECODED strings, never serialized JSON.
+
+    Output is deterministic (member mtime 0, gzip mtime 0) so an unchanged source
+    archive produces byte-identical output — the hourly cron then stages the file
+    with no diff, which also fixes the dirty-tracked-file trap that used to make
+    `git pull --rebase` refuse and silently kill the whole step-5 push.
+
+    Returns True if dst_path changed on disk.
+    """
+    import gzip
+    import io
+    import tarfile
+
+    with tarfile.open(src_path, "r:gz") as tar:
+        member = tar.getmember("claude_local_sessions.json")
+        f = tar.extractfile(member)
+        if f is None:
+            raise RuntimeError("claude_local_sessions.json missing from archive")
+        payload = f.read().decode("utf-8", errors="replace")
+
+    data = json.loads(payload)
+
+    def walk(node):
+        if isinstance(node, str):
+            return redact(node)
+        if isinstance(node, list):
+            return [walk(v) for v in node]
+        if isinstance(node, dict):
+            return {k: walk(v) for k, v in node.items()}
+        return node
+
+    body = json.dumps(walk(data), ensure_ascii=False).encode("utf-8")
+
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w") as tar:
+        info = tarfile.TarInfo("claude_local_sessions.json")
+        info.size = len(body)
+        info.mtime = 0
+        info.mode = 0o644
+        info.uid = info.gid = 0
+        info.uname = info.gname = ""
+        tar.addfile(info, io.BytesIO(body))
+
+    gz = io.BytesIO()
+    with gzip.GzipFile(fileobj=gz, mode="wb", mtime=0) as g:
+        g.write(buf.getvalue())
+    out = gz.getvalue()
+
+    changed = True
+    if os.path.exists(dst_path):
+        with open(dst_path, "rb") as f:
+            changed = f.read() != out
+    if changed:
+        with open(dst_path, "wb") as f:
+            f.write(out)
+        os.chmod(dst_path, 0o644)
+    return changed
+
+
 # ── Loaders ───────────────────────────────────────────────────────────
 
 def load_hermes_data() -> list[dict]:
