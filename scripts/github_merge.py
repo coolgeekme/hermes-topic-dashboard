@@ -98,8 +98,19 @@ _SECRET_PATTERNS = [
     # "Login: admin / hunter2", "(admin / nextcap2026)"
     (re.compile(r'(?i)\b(admin|user|root|login|log ?in)\b(\s*/\s*)["\'`*]{0,3}\s*([^\s\\"\'`*()\[\]]{4,})'),
      r'\1\2[REDACTED]'),
-    # Standalone access/test-drive codes (YMNC-85HC, 77WH-NW9J, QDGX-5PH8).
-    (re.compile(r'\b[A-Z0-9]{4}-[A-Z0-9]{4}\b'), '[ACCESS_CODE]'),
+    # Standalone access/test-drive codes (YMNC-85HC, 77WH-NW9J, QDGX-5PH8) are
+    # handled by `_redact_access_codes()` below, NOT by a shape regex here.
+    # 2026-09-24: the old rule `\b[A-Z0-9]{4}-[A-Z0-9]{4}\b` also ate any two
+    # adjacent 4-char groups inside a longer hyphen run:
+    #   - a Claude session UUID "5c452665-866c-4486-9888-…" published as
+    #     "5c452665-866c-[ACCESS_CODE]-…" in the PUBLIC data/claude_vps_sessions.json
+    #     (and the tar.gz mirror). A corrupted session id makes the Action's
+    #     rebuild treat it as a different session, so the public topic counts
+    #     drifted from the served dist/ build.
+    #   - Unicode ranges in prose, e.g. "U+0152-0153".
+    # A blanket "no hyphen adjacent" guard was tried and REJECTED: it would have
+    # republished the live test-drive code in `codes.json.bak-extend-…-TGJH-B3EC`.
+    # The rule now validates the enclosing run instead (see below).
     # Token-gated web-UI view URLs. The URL *shape* is the credential — the
     # 32-hex path segment is a bearer token (`https://srv….ts.net:10000/v/<hex>/`).
     # Added 2026-09-23 (2nd pass): the .env/value loaders already redact the
@@ -257,7 +268,49 @@ _ENV_ASSIGNMENT_RE = re.compile(
     r'(?:API[_]?KEY|APIKEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|ACCESS[_]?KEY))'
     r'\s*=\s*["\']?([^\s"\'\\]{6,})')
 
-_QUOTED_TOKEN = re.compile(r'[`*"\'"]([^\s`*"\'\\"]{4,})[`*"\'"]')
+_QUOTED_TOKEN = re.compile(r'[`*\"\'"]([^\s`*\"\'\\"]{4,})[`*\"\'\"]')
+
+# ── Standalone access/test-drive codes ────────────────────────────────
+# Shape: XXXX-XXXX (YMNC-85HC, 77WH-NW9J, QDGX-5PH8). The shape alone is not
+# enough — it collides with two adjacent 4-char groups of a session UUID
+# ("5c452665-866c-4486-9888-…" → the "4486-9888" pair) and with Unicode ranges
+# ("U+0152-0153"). Those corrupt public data, so each candidate is validated
+# against the hyphen-joined run it sits in before being redacted.
+_ACCESS_CODE_CANDIDATE = re.compile(r'\b[A-Z0-9]{4}-[A-Z0-9]{4}\b')
+_HEX_GROUP = re.compile(r'[0-9a-fA-F]{1,12}\Z')
+_RUN_CHARS = frozenset(
+    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._')
+
+
+def _looks_like_hex_id(run: str) -> bool:
+    """True for UUIDs / long hex ids that must NOT be touched.
+
+    "5c452665-866c-4486-9888-1a4f5b654b6c" → all groups hex, and either ≥4
+    groups or one group ≥8 chars. A filename tail like
+    "...-20260916-150114-TGJH-B3EC" fails (TGJH isn't hex), so the live code in
+    it still gets redacted.
+    """
+    parts = run.split('-')
+    if not parts or any(not _HEX_GROUP.fullmatch(p) for p in parts):
+        return False
+    return len(parts) >= 4 or any(len(p) >= 8 for p in parts)
+
+
+def _redact_access_codes(text: str) -> str:
+    def repl(m):
+        start, end = m.span()
+        if start and text[start - 1] == '+':
+            return m.group(0)          # Unicode range, e.g. U+0152-0153
+        a, b = start, end
+        while a and text[a - 1] in _RUN_CHARS:
+            a -= 1
+        while b < len(text) and text[b] in _RUN_CHARS:
+            b += 1
+        if _looks_like_hex_id(text[a:b]):
+            return m.group(0)          # session UUID / hex id — leave intact
+        return '[ACCESS_CODE]'
+
+    return _ACCESS_CODE_CANDIDATE.sub(repl, text)
 
 
 def _redact_tokens_near_label(text: str) -> str:
@@ -287,6 +340,7 @@ def redact_text(text: str) -> str:
         text = _ENV_SECRET_RE.sub('[REDACTED]', text)
     for p, r in _SECRET_PATTERNS:
         text = p.sub(r, text)
+    text = _redact_access_codes(text)
     return _redact_tokens_near_label(text)
 
 HERMES_FILE = os.path.expanduser("~/.hermes/topic_dashboard_data/topics.json")
